@@ -96,15 +96,10 @@ export default function Sidebar() {
       {/* Mobile top bar */}
       <div
         className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4"
-        style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", height: 52 }}
+        style={{ background: "var(--sidebar-bg)", borderBottom: "1px solid var(--sidebar-border)", height: 52 }}
       >
-        <div className="flex items-center gap-2">
-          <Sparkles size={15} style={{ color: "var(--gold)" }} />
-          <span style={{ color: "var(--gold)", fontWeight: 700, fontSize: 14, letterSpacing: "0.08em" }}>
-            IZABOR CRUZ
-          </span>
-        </div>
-        <button onClick={() => setOpen(!open)} style={{ color: "var(--text-soft)", background: "none", border: "none", cursor: "pointer" }}>
+        <img src="/logo-bw.jpeg" alt="Build Woman" style={{ height: 36, width: 36, objectFit: "cover", borderRadius: 6 }} />
+        <button onClick={() => setOpen(!open)} style={{ color: "rgba(240,240,240,0.7)", background: "none", border: "none", cursor: "pointer" }}>
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
@@ -117,47 +112,38 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`sidebar-aside fixed top-0 left-0 h-full z-50 flex flex-col${open ? " sidebar-open" : ""}`}
-        style={{ width: 220, background: "var(--bg-card)", borderRight: "1px solid var(--border)", padding: 0 }}
+        style={{ width: 220, background: "var(--sidebar-bg)", borderRight: "1px solid var(--sidebar-border)", padding: 0 }}
       >
         <div className="flex flex-col h-full" style={{ overflowY: "auto" }}>
 
           {/* Logo */}
           <div
             className="flex flex-col items-center justify-center"
-            style={{ padding: "28px 16px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}
+            style={{ padding: "20px 16px 18px", borderBottom: "1px solid var(--sidebar-border)", flexShrink: 0 }}
           >
-            <div
-              className="flex items-center justify-center"
-              style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--gold-light)", border: "1px solid var(--gold-border)", marginBottom: 10 }}
-            >
-              <Sparkles size={18} style={{ color: "var(--gold)" }} />
-            </div>
-            <p style={{ color: "var(--gold)", fontWeight: 700, fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Izabor Cruz
-            </p>
-            <p style={{ color: "var(--text-muted)", fontSize: 10, marginTop: 2, textAlign: "center" }}>
-              Mentora de Mulheres
-            </p>
+            <img
+              src="/logo-bw.jpeg"
+              alt="Build Woman"
+              style={{ width: 130, height: 130, objectFit: "cover", borderRadius: 12, display: "block" }}
+            />
           </div>
 
           {/* Nav com secoes */}
           <nav style={{ padding: "12px 12px 16px", flex: 1 }}>
             {sections.map((section, si) => (
               <div key={section.label} style={{ marginBottom: si < sections.length - 1 ? 4 : 0 }}>
-                {/* Label da secao */}
                 <p style={{
                   fontSize: 9,
                   fontWeight: 700,
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
-                  color: "var(--text-muted)",
+                  color: "rgba(201,168,76,0.55)",
                   padding: "10px 8px 4px",
                   margin: 0,
                 }}>
                   {section.label}
                 </p>
 
-                {/* Itens */}
                 <div className="flex flex-col gap-0.5">
                   {section.items.map(({ href, icon: Icon, label }) => {
                     const active = pathname === href;
@@ -175,19 +161,21 @@ export default function Sidebar() {
                   })}
                 </div>
 
-                {/* Divisor entre secoes */}
                 {si < sections.length - 1 && (
-                  <div style={{ height: 1, background: "var(--border)", margin: "8px 8px 0" }} />
+                  <div style={{ height: 1, background: "rgba(201,168,76,0.12)", margin: "8px 8px 0" }} />
                 )}
               </div>
             ))}
           </nav>
 
-          {/* Bottom quote */}
-          <div style={{ padding: "16px 16px 24px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
-            <p style={{ fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5, textAlign: "center", fontStyle: "italic" }}>
-              "Fé · Mentalidade · Liderança"
-            </p>
+          {/* Logout */}
+          <div style={{ padding: "12px 16px 20px", borderTop: "1px solid var(--sidebar-border)", flexShrink: 0 }}>
+            <button
+              onClick={handleLogout}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, color: "rgba(240,240,240,0.55)", background: "none", border: "1px solid rgba(201,168,76,0.2)", cursor: "pointer", width: "100%", transition: "all 0.15s" }}
+            >
+              <LogOut size={13} /> Sair do painel
+            </button>
           </div>
 
         </div>

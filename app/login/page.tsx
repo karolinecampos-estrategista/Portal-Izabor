@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Sparkles, Eye, EyeOff, Crown, User, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Crown, User, AlertCircle } from "lucide-react";
 
 type Tela = "escolha" | "entrar";
 
@@ -60,8 +60,12 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--gold-light)", border: "1px solid var(--gold-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <Sparkles size={24} style={{ color: "var(--gold)" }} />
+          <div style={{ margin: "0 auto 16px", display: "inline-block" }}>
+            <img
+              src="/logo-bw.jpeg"
+              alt="Build Woman"
+              style={{ width: 140, height: 140, objectFit: "cover", borderRadius: 16, display: "block", boxShadow: "0 8px 32px rgba(13,59,44,0.4)" }}
+            />
           </div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--gold)", letterSpacing: "0.08em", margin: "0 0 6px" }}>
             IZABOR CRUZ
