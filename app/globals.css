@@ -1,0 +1,315 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #080808;
+  --bg-card: #111111;
+  --bg-card-hover: #161616;
+  --bg-input: #1a1a1a;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-hover: rgba(255, 255, 255, 0.14);
+  --gold: #C9A84C;
+  --gold-light: rgba(201, 168, 76, 0.12);
+  --gold-border: rgba(201, 168, 76, 0.3);
+  --text: #f0f0f0;
+  --text-muted: rgba(240, 240, 240, 0.45);
+  --text-soft: rgba(240, 240, 240, 0.7);
+  --sidebar-width: 240px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--bg-card);
+  --color-gold: var(--gold);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── CARD ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.card-hover:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+  transition: all 0.2s ease;
+}
+
+/* ── GOLD ── */
+.gold { color: var(--gold); }
+.gold-bg { background: var(--gold-light); }
+.gold-border { border-color: var(--gold-border) !important; }
+
+/* ── INPUT ── */
+input, textarea, select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+/* Date inputs: força respeitar o container, remove min-width do browser */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--gold-border); }
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
+
+/* Class used on inputs throughout pages */
+.input {
+  padding: 10px 12px;
+  width: 100%;
+  font-size: 13px;
+  display: block;
+}
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+/* ── BUTTONS ── */
+.btn-gold {
+  background: var(--gold);
+  color: #000;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow: visible;
+}
+.btn-gold:hover { opacity: 0.88; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-ghost:hover { border-color: var(--border-hover); color: var(--text); }
+
+/* ── TAGS ── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.tag-fe        { background: rgba(139,92,246,0.15);  color: #a78bfa; }
+.tag-mentalidade { background: rgba(59,130,246,0.15); color: #93c5fd; }
+.tag-lideranca { background: rgba(201,168,76,0.15);  color: #C9A84C; }
+.tag-emocional { background: rgba(236,72,153,0.15);  color: #f9a8d4; }
+.tag-familia   { background: rgba(34,197,94,0.15);   color: #86efac; }
+.tag-geral     { background: rgba(148,163,184,0.15); color: #94a3b8; }
+
+/* ── PROGRESS ── */
+.progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* ── SIDEBAR ── */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--text-soft);
+  text-decoration: none;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.sidebar-link:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.sidebar-link.active {
+  background: var(--gold-light);
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+}
+
+/* ── MISC ── */
+.divider { height: 1px; background: var(--border); margin: 8px 0; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.verse-block {
+  border-left: 3px solid var(--gold);
+  padding: 12px 16px;
+  background: var(--gold-light);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.glow-gold { box-shadow: 0 0 20px rgba(201, 168, 76, 0.15); }
+
+/* ── RESPONSIVE GRIDS ── */
+.grid-cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.grid-cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid-cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ── FORM GRIDS (2 e 3 colunas no desktop, 1 coluna no mobile) ── */
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; overflow: hidden; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; overflow: hidden; }
+.form-grid-2 > *, .form-grid-3 > * { min-width: 0; overflow: hidden; }
+
+/* ── AGENDA ── */
+.agenda-grid { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
+.event-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* ── HORIZONTAL SCROLL (for tables that can't reflow) ── */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── BOX DO LIVRO — row responsivo ── */
+.box-livro-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 130px 120px 150px 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+}
+/* Columns that hide below 1024px */
+.blr-col { /* visible by default */ }
+/* Mobile summary — hidden on desktop */
+.blr-mobile { display: none; }
+
+/* ── MAIN LAYOUT ── */
+.main-layout {
+  margin-left: 220px;
+  min-height: 100vh;
+  padding: 28px 28px 40px;
+  overflow-x: hidden;
+}
+
+/* ── SIDEBAR MOBILE SLIDE ── */
+.sidebar-aside { transition: transform 0.25s ease; }
+
+/* ════════════════════════════════
+   iPad / Tablet  (≤ 1024px)
+   ════════════════════════════════ */
+@media (max-width: 1024px) {
+  .main-layout { padding: 24px 20px 40px; }
+
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .agenda-grid { grid-template-columns: 1fr; }
+
+  /* Box livro: mostrar só avatar + nome + chevron no iPad */
+  .box-livro-row { grid-template-columns: 40px 1fr 36px; }
+  /* !important sobrescreve qualquer display inline nos filhos */
+  .blr-col    { display: none !important; }
+  .blr-mobile { display: flex !important; }
+}
+
+/* ════════════════════════════════
+   Mobile  (≤ 768px)
+   ════════════════════════════════ */
+@media (max-width: 768px) {
+  :root { --sidebar-width: 0px; }
+
+  .main-layout {
+    margin-left: 0;
+    padding: 16px 14px 40px;
+    overflow-x: hidden;
+  }
+
+  .sidebar-aside { transform: translateX(-100%); }
+  .sidebar-aside.sidebar-open { transform: translateX(0); }
+
+  /* Grids */
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .grid-cols-3 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .grid-cols-2 { grid-template-columns: 1fr; }
+  .agenda-grid { grid-template-columns: 1fr; }
+  .event-form-row { grid-template-columns: 1fr 1fr; }
+
+  /* Box livro */
+  .box-livro-row {
+    grid-template-columns: 34px 1fr 26px;
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  /* Form grids — força coluna única no mobile */
+  .form-grid-2 { grid-template-columns: 1fr !important; }
+  .form-grid-3 { grid-template-columns: 1fr !important; }
+
+  /* Utilities */
+  .capture-row { flex-wrap: wrap; gap: 8px; }
+  .capture-selects { margin-left: 0 !important; width: 100%; }
+  .capture-selects select { flex: 1; }
+  .hide-mobile { display: none !important; }
+}

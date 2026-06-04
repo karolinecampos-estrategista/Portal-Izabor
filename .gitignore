@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+
+# Build
+.next/
+out/
+
+# Ambiente (NUNCA commitar — contém as chaves do Supabase)
+.env.local
+.env*.local
+
+# Vercel
+.vercel
+
+# Sistema
+.DS_Store
+*.log
