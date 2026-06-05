@@ -6,10 +6,10 @@ const PRODUTOS = [
   {
     id: "seja-incomum",
     nome: "Seja Incomum",
-    tipo: "Mentoria",
+    tipo: "Video Aulas",
     emoji: "👑",
     cor: "#C9A84C",
-    descricao: "Mentoria com a Izabor Cruz. Transformação em identidade, fé e liderança — do interior para o extraordinário.",
+    descricao: "Programa de video aulas com a Izabor Cruz. Transformação em identidade, fé e liderança — do interior para o extraordinário.",
     link: "https://izaborcruz.com.br/sejaincomum/",
     destaque: true,
     lancamento: null,
@@ -17,10 +17,10 @@ const PRODUTOS = [
   {
     id: "club-bw",
     nome: "Club BW",
-    tipo: "Assinatura Mensal",
+    tipo: "Mentoria",
     emoji: "💜",
     cor: "#a78bfa",
-    descricao: "Comunidade mensal com encontros ao vivo, estudos e suporte contínuo com a Izabor e outras mulheres extraordinárias.",
+    descricao: "Mentoria com a Izabor Cruz. Encontros ao vivo, sessões de mentoria agendadas e suporte contínuo com outras mulheres extraordinárias.",
     link: "https://pay.hub.la/QluuN4fzJrLQBWEnra8G",
     destaque: true,
     lancamento: null,
@@ -42,10 +42,10 @@ const PRODUTOS = [
     tipo: "Lançamento",
     emoji: "📖",
     cor: "#86efac",
-    descricao: "O livro da Izabor Cruz com acompanhamento mensal em grupo. Lançamento dia 10/10 no evento presencial.",
+    descricao: "O livro da Izabor Cruz com acompanhamento mensal em grupo.",
     link: null,
     destaque: false,
-    lancamento: "Lançamento 10 de outubro · No evento presencial",
+    lancamento: "Lançamento em breve",
   },
 ];
 
@@ -132,7 +132,7 @@ export default function Loja() {
           <div className="flex items-center gap-2">
             <Calendar size={13} style={{ color: "#fbbf24" }} />
             <span style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700 }}>
-              Lançamento 10 de outubro · No evento presencial
+              Lançamento em breve
             </span>
           </div>
         </div>
