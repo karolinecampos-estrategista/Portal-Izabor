@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     produtos.push({
       chave: "seja_incomum",
       nome: "Seja Incomum",
-      tipo: "Programa de Mentoria",
+      tipo: "Video Aulas",
       emoji: "👑",
       cor: "#C9A84C",
       dataCompra: si?.data_compra ?? null,
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     produtos.push({
       chave: "club_bw",
       nome: "Club BW",
-      tipo: "Assinatura Mensal",
+      tipo: "Mentoria",
       emoji: "💜",
       cor: "#a78bfa",
       dataCompra: bw?.data_compra ?? null,
