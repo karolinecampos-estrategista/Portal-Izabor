@@ -18,24 +18,30 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from("club_bw_compradores")
     .insert({
-      nome:         body.nome,
-      email:        body.email        ?? null,
-      whatsapp:     body.whatsapp     ?? null,
-      instagram:    body.instagram    ?? null,
-      data_compra:  body.dataCompra   ?? new Date().toISOString().split("T")[0],
-      status_acesso:body.statusAcesso ?? "ativo",
-      mes_inicio:   body.mesInicio    ?? null,
-      mes_fim:      body.mesFim       ?? null,
-      notas:        body.notas        ?? null,
+      nome:             body.nome,
+      email:            body.email            ?? null,
+      whatsapp:         body.whatsapp         ?? null,
+      instagram:        body.instagram        ?? null,
+      data_compra:      body.dataCompra       ?? new Date().toISOString().split("T")[0],
+      status_acesso:    body.statusAcesso     ?? "ativo",
+      mes_inicio:       body.mesInicio        ?? null,
+      mes_fim:          body.mesFim           ?? null,
+      notas:            body.notas            ?? null,
+      status_pagamento: body.statusPagamento  ?? "pendente",
+      valor:            body.valor            ?? null,
+      forma_pagamento:  body.formaPagamento   ?? null,
     })
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  criarAcessoExtraordinaria(body.email, body.nome, "club_bw").catch(() => null);
+  const produtos = Array.isArray(body.produtos) && body.produtos.length > 0
+    ? body.produtos
+    : ["club_bw"];
+  const acesso = await criarAcessoExtraordinaria(body.email, body.nome, produtos).catch(() => null);
 
-  return NextResponse.json(data);
+  return NextResponse.json({ ...data, _acesso: acesso });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -49,9 +55,12 @@ export async function PATCH(req: NextRequest) {
   if (campos.instagram    !== undefined) update.instagram     = campos.instagram;
   if (campos.dataCompra   !== undefined) update.data_compra   = campos.dataCompra;
   if (campos.statusAcesso !== undefined) update.status_acesso = campos.statusAcesso;
-  if (campos.mesInicio    !== undefined) update.mes_inicio    = campos.mesInicio;
-  if (campos.mesFim       !== undefined) update.mes_fim       = campos.mesFim;
-  if (campos.notas        !== undefined) update.notas         = campos.notas;
+  if (campos.mesInicio        !== undefined) update.mes_inicio       = campos.mesInicio;
+  if (campos.mesFim           !== undefined) update.mes_fim          = campos.mesFim;
+  if (campos.notas            !== undefined) update.notas            = campos.notas;
+  if (campos.statusPagamento  !== undefined) update.status_pagamento = campos.statusPagamento;
+  if (campos.valor            !== undefined) update.valor            = campos.valor;
+  if (campos.formaPagamento   !== undefined) update.forma_pagamento  = campos.formaPagamento;
 
   const { data, error } = await supabaseAdmin
     .from("club_bw_compradores")

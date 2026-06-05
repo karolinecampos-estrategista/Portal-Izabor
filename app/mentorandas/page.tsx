@@ -38,7 +38,7 @@ const presencaCfg = {
   remarcada:  { label: "Remarcada",  cor: "#fbbf24", icon: RotateCcw },
 };
 
-type Programa = "Imersao BW" | "Mentoria Individual" | "Club BW";
+type Programa = "Imersao BW" | "Mentoria" | "Club BW";
 type StatusAluna = "ativo" | "concluido" | "pausado";
 type Pilar = "Fe" | "Mentalidade" | "Lideranca" | "Emocional" | "Familia";
 type FormaPagamento = "cartao" | "boleto" | "outra-plataforma" | "parcelado";
@@ -78,9 +78,9 @@ const catColor: Record<Pilar, string> = {
   Emocional: "tag-emocional", Familia: "tag-familia",
 };
 const programaCor: Record<Programa, string> = {
-  "Imersao BW": "#C9A84C", "Mentoria Individual": "#a78bfa", "Club BW": "#86efac",
+  "Imersao BW": "#C9A84C", "Mentoria": "#a78bfa", "Club BW": "#86efac",
 };
-const PROGRAMAS: Programa[] = ["Imersao BW", "Mentoria Individual", "Club BW"];
+const PROGRAMAS: Programa[] = ["Imersao BW", "Mentoria", "Club BW"];
 const PILARES: Pilar[] = ["Fe", "Mentalidade", "Lideranca", "Emocional", "Familia"];
 const FORMAS_PAGAMENTO: { value: FormaPagamento; label: string }[] = [
   { value: "cartao", label: "Cartão de Crédito" },
@@ -88,7 +88,7 @@ const FORMAS_PAGAMENTO: { value: FormaPagamento; label: string }[] = [
   { value: "parcelado", label: "Parcelado (outro)" },
   { value: "outra-plataforma", label: "Outra Plataforma" },
 ];
-const FORM_VAZIO: Omit<Mentoranda, "id"> = { nome: "", email: "", programa: "Mentoria Individual", inicio: "", sessoes: 0, totalSessoes: 6, status: "ativo", notas: "", proxima: "", pilares: ["Fe"], cor: "#C9A84C", origem: "", valorNegociado: 0, formaPagamento: "cartao", totalParcelas: 1, anotacoesNegociacao: "", aniversario: "", whatsapp: "", instagram: "", loginCriado: false, acesso: "mentoria" as "mentoria" | "livro" | "ambos", mostrarFinanceiro: false, produtosAtivos: {} };
+const FORM_VAZIO: Omit<Mentoranda, "id"> = { nome: "", email: "", programa: "Mentoria", inicio: "", sessoes: 0, totalSessoes: 6, status: "ativo", notas: "", proxima: "", pilares: ["Fe"], cor: "#C9A84C", origem: "", valorNegociado: 0, formaPagamento: "cartao", totalParcelas: 1, anotacoesNegociacao: "", aniversario: "", whatsapp: "", instagram: "", loginCriado: false, acesso: "mentoria" as "mentoria" | "livro" | "ambos", mostrarFinanceiro: false, produtosAtivos: {} };
 
 const PRODUTOS_IZA = [
   { id: "seja_incomum", label: "Seja Incomum",     cor: "#C9A84C", emoji: "👑" },
@@ -106,7 +106,7 @@ function dbParaFrontend(d: Record<string, unknown>): Mentoranda {
     whatsapp: (d.whatsapp as string) ?? "",
     instagram: (d.instagram as string) ?? "",
     aniversario: (d.aniversario as string) ?? "",
-    programa: (d.programa as Programa) ?? "Mentoria Individual",
+    programa: (d.programa as Programa) ?? "Mentoria",
     inicio: (d.inicio as string) ?? "",
     status: (d.status as "ativo" | "concluido" | "pausado") ?? "ativo",
     sessoes: (d.sessoes_feitas as number) ?? 0,

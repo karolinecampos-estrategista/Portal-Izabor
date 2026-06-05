@@ -26,12 +26,18 @@ export default function CheckinMentoradaPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return;
+      // Suporta usuárias criadas via portal (id = user.id) e via legado (user_id = user.id)
       const { data } = await supabase
         .from("mentoradas")
         .select("id, nome, programa, user_id")
-        .eq("user_id", session.user.id)
-        .single();
-      if (data) setMentoradaInfo(data);
+        .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
+        .maybeSingle();
+      if (data) {
+        setMentoradaInfo(data);
+      } else {
+        // Fallback: usa o ID da sessão diretamente como mentorada_id
+        setMentoradaInfo({ id: session.user.id, nome: "Mentorada", programa: null, user_id: session.user.id });
+      }
     });
   }, []);
 

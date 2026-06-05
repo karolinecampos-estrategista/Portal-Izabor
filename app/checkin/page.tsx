@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react";
+import { Activity, TrendingUp, TrendingDown, Minus, Loader2, Phone, Mail, Instagram } from "lucide-react";
 
 type CheckIn = {
   id: string;
@@ -11,7 +11,7 @@ type CheckIn = {
   semana: string | null;
   texto: string | null;
   criado_em: string;
-  mentoradas?: { cor: string } | null;
+  mentoradas?: { nome: string | null; cor: string; whatsapp: string | null; email: string | null; instagram: string | null } | null;
 };
 
 const EMOJIS = ["😔", "😟", "😐", "🙂", "🤩"];
@@ -88,10 +88,10 @@ export default function CheckinAdminPage() {
               <div key={c.id} className="card" style={{ padding: "20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                   <div style={{ width: 36, height: 36, borderRadius: "50%", background: cor + "20", border: `1px solid ${cor}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: cor, fontWeight: 700, flexShrink: 0 }}>
-                    {iniciais(c.nome)}
+                    {iniciais(c.mentoradas?.nome ?? c.nome)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.mentoradas?.nome ?? c.nome}</p>
                     <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>
                       {c.semana ?? "Esta semana"} · {diasAtras(c.criado_em)}
                     </p>
@@ -108,9 +108,43 @@ export default function CheckinAdminPage() {
                 </div>
 
                 {c.texto && (
-                  <p style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.6, margin: 0, fontStyle: "italic" }}>
+                  <p style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.6, margin: "0 0 12px", fontStyle: "italic" }}>
                     &ldquo;{c.texto}&rdquo;
                   </p>
+                )}
+
+                {/* Contatos rápidos */}
+                {(c.mentoradas?.whatsapp || c.mentoradas?.email || c.mentoradas?.instagram) && (
+                  <div style={{ display: "flex", gap: 6, marginTop: c.texto ? 0 : 0, paddingTop: 12, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
+                    {c.mentoradas?.whatsapp && (
+                      <a
+                        href={`https://wa.me/55${c.mentoradas.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 7, background: "rgba(134,239,172,0.08)", border: "1px solid rgba(134,239,172,0.2)", color: "#86efac", fontSize: 11, fontWeight: 600, textDecoration: "none" }}
+                      >
+                        <Phone size={11} /> WhatsApp
+                      </a>
+                    )}
+                    {c.mentoradas?.email && (
+                      <a
+                        href={`mailto:${c.mentoradas.email}`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 7, background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)", color: "var(--gold)", fontSize: 11, fontWeight: 600, textDecoration: "none" }}
+                      >
+                        <Mail size={11} /> E-mail
+                      </a>
+                    )}
+                    {c.mentoradas?.instagram && (
+                      <a
+                        href={`https://instagram.com/${c.mentoradas.instagram.replace("@", "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 7, background: "rgba(249,168,212,0.08)", border: "1px solid rgba(249,168,212,0.2)", color: "#f9a8d4", fontSize: 11, fontWeight: 600, textDecoration: "none" }}
+                      >
+                        <Instagram size={11} /> Instagram
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             );

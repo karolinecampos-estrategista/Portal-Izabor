@@ -28,19 +28,33 @@ export async function GET(req: NextRequest) {
   const tipo = (perfil?.tipo ?? "mentorada") as "admin" | "mentorada";
 
   // Para mentoradas, busca o campo acesso da tabela mentoradas
+  // Suporta dois sistemas: user_id (legado) e id (novo, via criarAcessoExtraordinaria)
   let acesso: "mentoria" | "livro" | "ambos" = "mentoria";
   if (tipo === "mentorada") {
     const { data: m } = await supabaseAdmin
       .from("mentoradas")
-      .select("acesso, mostrar_financeiro, produtos_ativos")
-      .eq("user_id", user.id)
-      .single();
+      .select("acesso, mostrar_financeiro, produtos_ativos, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento")
+      .or(`user_id.eq.${user.id},id.eq.${user.id}`)
+      .maybeSingle();
+
     if (m?.acesso) acesso = m.acesso as "mentoria" | "livro" | "ambos";
+
+    // As colunas booleanas sempre sobrescrevem o campo JSON legado.
+    // Usar !!valor garante que false também é setado, evitando que dados
+    // antigos do JSON mostrem produtos como ativos incorretamente.
+    const produtosAtivos = {
+      ...(m?.produtos_ativos ?? {}),
+      seja_incomum: !!m?.acesso_seja_incomum,
+      club_bw:      !!m?.acesso_club_bw,
+      box_livro:    !!m?.acesso_box_livro,
+      evento:       !!m?.acesso_evento,
+    };
+
     return NextResponse.json({
       tipo,
       acesso,
       mostrarFinanceiro: m?.mostrar_financeiro ?? false,
-      produtosAtivos: m?.produtos_ativos ?? {},
+      produtosAtivos,
       nome: perfil?.nome ?? null,
       id: user.id,
     });

@@ -3,8 +3,11 @@
 import { MessageCircle, Send, Crown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/hooks/usePerfil";
+import BloqueadoPorProduto from "@/components/BloqueadoPorProduto";
 
 export default function Chat() {
+  const perfil = usePerfil();
   const [input, setInput] = useState("");
   const [nomeMentorada, setNomeMentorada] = useState("");
 
@@ -14,13 +17,14 @@ export default function Chat() {
       const { data: m } = await supabase
         .from("mentoradas")
         .select("nome")
-        .eq("user_id", session.user.id)
-        .single();
+        .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
+        .maybeSingle();
       if (m) setNomeMentorada(m.nome.split(" ")[0]);
     });
   }, []);
 
   return (
+    <BloqueadoPorProduto produto="club_bw" ativo={!!perfil.produtosAtivos?.club_bw}>
     <div style={{ maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", minHeight: "calc(100vh - 120px)" }}>
 
       {/* Header */}
@@ -103,5 +107,6 @@ export default function Chat() {
         </button>
       </div>
     </div>
+    </BloqueadoPorProduto>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { criarAcessoExtraordinaria } from "@/lib/criar-acesso-extraordinaria";
 
 export async function GET() {
   const { data, error } = await supabaseAdmin
@@ -31,6 +32,10 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Cria acesso de Extraordinária automaticamente (best-effort)
+  criarAcessoExtraordinaria(body.email, body.nome, "evento").catch(() => null);
+
   return NextResponse.json(data);
 }
 

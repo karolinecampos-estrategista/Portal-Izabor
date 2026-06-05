@@ -29,15 +29,21 @@ export async function POST(req: NextRequest) {
       status_upsell:      body.statusUpsell       ?? "nao-abordada",
       tem_acesso_bw:      body.temAcessoBW        ?? false,
       notas:              body.notas              ?? null,
+      status_pagamento:   body.statusPagamento    ?? "pendente",
+      valor:              body.valor              ?? null,
+      forma_pagamento:    body.formaPagamento     ?? null,
     })
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  criarAcessoExtraordinaria(body.email, body.nome, "box_livro").catch(() => null);
+  const produtos = Array.isArray(body.produtos) && body.produtos.length > 0
+    ? body.produtos
+    : ["box_livro"];
+  const acesso = await criarAcessoExtraordinaria(body.email, body.nome, produtos).catch(() => null);
 
-  return NextResponse.json(data);
+  return NextResponse.json({ ...data, _acesso: acesso });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -56,6 +62,9 @@ export async function PATCH(req: NextRequest) {
   if (campos.statusUpsell     !== undefined) update.status_upsell     = campos.statusUpsell;
   if (campos.temAcessoBW      !== undefined) update.tem_acesso_bw     = campos.temAcessoBW;
   if (campos.notas            !== undefined) update.notas             = campos.notas;
+  if (campos.statusPagamento  !== undefined) update.status_pagamento  = campos.statusPagamento;
+  if (campos.valor            !== undefined) update.valor             = campos.valor;
+  if (campos.formaPagamento   !== undefined) update.forma_pagamento   = campos.formaPagamento;
 
   const { data, error } = await supabaseAdmin
     .from("box_livro_compradores")

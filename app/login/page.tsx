@@ -18,15 +18,28 @@ export default function LoginAdminPage() {
     setErro("");
     setCarregando(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-
-    setCarregando(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
 
     if (error) {
+      setCarregando(false);
       setErro("E-mail ou senha incorretos.");
       return;
     }
 
+    // Verifica se o usuário tem tipo "admin" no banco
+    const res = await fetch("/api/perfil", {
+      headers: { Authorization: `Bearer ${data.session?.access_token}` },
+    });
+    const perfil = res.ok ? await res.json() : null;
+
+    if (perfil?.tipo !== "admin") {
+      await supabase.auth.signOut();
+      setCarregando(false);
+      setErro("Acesso não autorizado. Use o portal das extraordinárias para fazer login.");
+      return;
+    }
+
+    setCarregando(false);
     router.replace("/");
   }
 

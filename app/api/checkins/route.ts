@@ -7,7 +7,7 @@ export async function GET() {
     .from("check_ins")
     .select(`
       *,
-      mentoradas ( cor )
+      mentoradas ( nome, cor, whatsapp, email, instagram )
     `)
     .order("criado_em", { ascending: false });
 

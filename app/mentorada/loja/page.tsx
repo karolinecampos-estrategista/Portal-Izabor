@@ -6,10 +6,10 @@ const PRODUTOS = [
   {
     id: "seja-incomum",
     nome: "Seja Incomum",
-    tipo: "Mentoria Individual",
+    tipo: "Mentoria",
     emoji: "👑",
     cor: "#C9A84C",
-    descricao: "Mentoria individual com a Izabor Cruz. Transformação em identidade, fé e liderança — do interior para o extraordinário.",
+    descricao: "Mentoria com a Izabor Cruz. Transformação em identidade, fé e liderança — do interior para o extraordinário.",
     link: "https://izaborcruz.com.br/sejaincomum/",
     destaque: true,
     lancamento: null,

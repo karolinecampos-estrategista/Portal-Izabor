@@ -1,103 +1,119 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, PlaySquare, Trophy, Heart, MessageCircle, TrendingUp,
-  Sunrise, User, ShoppingBag, Gift, Instagram, Youtube,
-  Menu, X, LogOut, CalendarDays, BookHeart, CheckSquare,
-  BookOpen, Activity, FileText, Stethoscope, Lock,
+  LayoutDashboard, PlaySquare, Trophy, Heart, MessageCircle,
+  User, ShoppingBag, Gift, Instagram, Youtube,
+  Menu, X, LogOut, BookHeart, CheckSquare,
+  BookOpen, Activity, FileText, Stethoscope, ClipboardList,
+  Sunrise, CreditCard, Flame, Lock,
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 
 interface Props {
-  mostrarFinanceiro?: boolean;
   produtosAtivos?: Record<string, boolean>;
 }
 
-// Produto necessário para cada rota (null = livre)
-const PRODUTO_POR_ROTA: Record<string, string | null> = {
-  "/mentorada/aulas":      "seja_incomum",
-  "/mentorada/devocional": "seja_incomum",
-  "/mentorada/plano":      "seja_incomum",
-  "/mentorada/tarefas":    "seja_incomum",
-  "/mentorada/jornada":    "seja_incomum",
-  "/mentorada/diagnostico":"seja_incomum",
-  "/mentorada/checkin":    "seja_incomum",
-  "/mentorada/meu-inicio": "seja_incomum",
-  "/mentorada/depoimentos":"club_bw",
-  "/mentorada/chat":       "club_bw",
-  "/mentorada/box-livro":  "livro",
-  "/mentorada/financeiro": null, // controlado por mostrarFinanceiro
-};
+interface NavItem {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+}
 
-const SECTIONS = [
-  {
-    label: "Principal",
-    items: [
-      { href: "/mentorada", icon: LayoutDashboard, label: "Início" },
-      { href: "/mentorada/agenda", icon: CalendarDays, label: "Agenda" },
-    ],
-  },
-  {
-    label: "Pessoal",
-    items: [
-      { href: "/mentorada/meu-inicio", icon: Sunrise, label: "Meu Começo" },
-      { href: "/mentorada/diagnostico", icon: Stethoscope, label: "Meu Diagnóstico" },
-      { href: "/mentorada/checkin", icon: Activity, label: "Check-in Semanal" },
-      { href: "/mentorada/perfil", icon: User, label: "Meu Perfil" },
-    ],
-  },
-  {
+interface Section {
+  label: string;
+  items: NavItem[];
+  cor?: string;
+  bloqueado?: boolean;
+  linkAquisicao?: string;
+}
+
+function buildSections(p: Record<string, boolean>): Section[] {
+  const sections: Section[] = [
+    {
+      label: "Principal",
+      items: [
+        { href: "/mentorada",        icon: LayoutDashboard, label: "Início" },
+        { href: "/mentorada/perfil", icon: User,            label: "Meu Perfil" },
+      ],
+    },
+  ];
+
+  sections.push({
     label: "Seja Incomum",
+    cor: "#C9A84C",
+    bloqueado: !p.seja_incomum,
+    linkAquisicao: "https://izaborcruz.com.br/sejaincomum/",
     items: [
-      { href: "/mentorada/aulas", icon: PlaySquare, label: "Aulas" },
-      { href: "/mentorada/devocional", icon: BookHeart, label: "Devocional" },
-      { href: "/mentorada/plano", icon: FileText, label: "Meu Plano de Ação" },
-      { href: "/mentorada/tarefas", icon: CheckSquare, label: "Minhas Tarefas" },
-      { href: "/mentorada/jornada", icon: Trophy, label: "Minha Jornada" },
+      { href: "/mentorada/aulas",      icon: PlaySquare,    label: "Aulas" },
+      { href: "/mentorada/devocional", icon: BookHeart,     label: "Devocional" },
+      { href: "/mentorada/plano",      icon: FileText,      label: "Meu Plano de Ação" },
+      { href: "/mentorada/tarefas",    icon: CheckSquare,   label: "Minhas Tarefas" },
+      { href: "/mentorada/jornada",    icon: Trophy,        label: "Minha Jornada" },
+      { href: "/mentorada/meu-inicio", icon: Sunrise,       label: "Meu Começo" },
+      { href: "/mentorada/diagnostico",icon: Stethoscope,   label: "Meu Diagnóstico" },
+      { href: "/mentorada/checkin",    icon: Activity,      label: "Check-in Semanal" },
     ],
-  },
-  {
-    label: "Comunidade",
+  });
+
+  sections.push({
+    label: "Club BW",
+    cor: "#a78bfa",
+    bloqueado: !p.club_bw,
+    linkAquisicao: "https://pay.hub.la/QluuN4fzJrLQBWEnra8G",
     items: [
-      { href: "/mentorada/depoimentos", icon: Heart, label: "Depoimentos" },
-      { href: "/mentorada/chat", icon: MessageCircle, label: "Chat" },
+      { href: "/mentorada/minhas-sessoes", icon: ClipboardList, label: "Minhas Sessões" },
+      { href: "/mentorada/checkin",        icon: Activity,      label: "Check-in Semanal" },
+      { href: "/mentorada/diagnostico",    icon: Stethoscope,   label: "Meu Diagnóstico" },
+      { href: "/mentorada/plano",          icon: FileText,      label: "Meu Plano de Ação" },
+      { href: "/mentorada/tarefas",        icon: CheckSquare,   label: "Minhas Tarefas" },
+      { href: "/mentorada/devocional",     icon: BookHeart,     label: "Devocional" },
+      { href: "/mentorada/jornada",        icon: Trophy,        label: "Minha Jornada" },
+      { href: "/mentorada/depoimentos",    icon: Heart,         label: "Depoimentos" },
+      { href: "/mentorada/chat",           icon: MessageCircle, label: "Chat" },
     ],
-  },
-  {
-    label: "Livro",
+  });
+
+  sections.push({
+    label: "Box do Livro",
+    cor: "#86efac",
+    bloqueado: !p.box_livro,
+    linkAquisicao: "/mentorada/produtos",
     items: [
       { href: "/mentorada/box-livro", icon: BookOpen, label: "Box do Livro" },
     ],
-  },
-  {
+  });
+
+  if (p.evento) {
+    sections.push({
+      label: "Simplesmente Seja",
+      cor: "#fb923c",
+      items: [
+        { href: "/mentorada/evento", icon: Flame, label: "Evento" },
+      ],
+    });
+  }
+
+  sections.push({
     label: "Minha Área",
     items: [
-      { href: "/mentorada/produtos", icon: Gift, label: "Meus Programas" },
-      { href: "/mentorada/loja", icon: ShoppingBag, label: "Cupons & Loja" },
+      { href: "/mentorada/produtos",    icon: Gift,       label: "Adquirir Programas" },
+      { href: "/mentorada/financeiro",  icon: CreditCard, label: "Meus Pagamentos" },
+      { href: "/mentorada/loja",        icon: ShoppingBag,label: "Cupons & Loja" },
     ],
-  },
-];
+  });
 
-export default function SidebarMentorada({ mostrarFinanceiro = false, produtosAtivos = {} }: Props) {
+  return sections;
+}
+
+export default function SidebarMentorada({ produtosAtivos = {} }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  function temAcesso(href: string): boolean {
-    if (href === "/mentorada/financeiro") return mostrarFinanceiro;
-    const produto = PRODUTO_POR_ROTA[href];
-    if (!produto) return true; // livre
-    return !!produtosAtivos[produto];
-  }
-
-  // Adiciona financeiro dinamicamente se liberado
-  const sections = mostrarFinanceiro
-    ? [...SECTIONS, { label: "Financeiro", items: [{ href: "/mentorada/financeiro", icon: TrendingUp, label: "Financeiro" }] }]
-    : SECTIONS;
+  const sections = buildSections(produtosAtivos);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -111,8 +127,8 @@ export default function SidebarMentorada({ mostrarFinanceiro = false, produtosAt
         className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4"
         style={{ background: "var(--sidebar-bg)", borderBottom: "1px solid var(--sidebar-border)", height: 52 }}
       >
-        <div style={{ width: 36, height: 36, background: "#000", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
-          <img src="/bw1.jpeg" alt="Build Woman" style={{ height: 36, width: 36, objectFit: "contain", mixBlendMode: "screen" }} />
+        <div style={{ background: "var(--sidebar-bg)", isolation: "isolate", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", padding: 2 }}>
+          <img src="/bw1.jpeg" alt="Build Woman" style={{ height: 38, width: 38, objectFit: "contain", mixBlendMode: "screen" }} />
         </div>
         <button onClick={() => setOpen(!open)} style={{ color: "rgba(240,240,240,0.7)", background: "none", border: "none", cursor: "pointer" }}>
           {open ? <X size={20} /> : <Menu size={20} />}
@@ -129,51 +145,74 @@ export default function SidebarMentorada({ mostrarFinanceiro = false, produtosAt
       >
         <div className="flex flex-col h-full" style={{ overflowY: "auto" }}>
           {/* Logo */}
-          <div
-            className="flex flex-col items-center justify-center"
-            style={{ padding: "20px 16px 18px", borderBottom: "1px solid var(--sidebar-border)", flexShrink: 0 }}
-          >
-            <img
-              src="/bw1.jpeg"
-              alt="Build Woman"
-              style={{ width: 140, height: 140, objectFit: "contain", display: "block", mixBlendMode: "screen" }}
-            />
+          <div className="flex flex-col items-center justify-center" style={{ padding: "20px 16px 18px", borderBottom: "1px solid var(--sidebar-border)", flexShrink: 0, background: "var(--sidebar-bg)", isolation: "isolate" }}>
+            <img src="/bw1.jpeg" alt="Build Woman" style={{ width: 140, height: 140, objectFit: "contain", display: "block", mixBlendMode: "screen" }} />
           </div>
 
           {/* Nav */}
           <nav style={{ padding: "12px 12px 16px", flex: 1 }}>
-            {sections.map((section, si) => (
-              <div key={section.label} style={{ marginBottom: si < sections.length - 1 ? 4 : 0 }}>
-                <p style={{
-                  fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
-                  color: "rgba(201,168,76,0.55)", padding: "10px 8px 4px", margin: 0,
-                }}>
-                  {section.label}
-                </p>
-                <div className="flex flex-col gap-0.5">
-                  {section.items.map(({ href, icon: Icon, label }) => {
-                    const active = pathname === href || (href !== "/mentorada" && pathname.startsWith(href));
-                    const livre = temAcesso(href);
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
+            {sections.map((section, si) => {
+              const bloqueado = !!section.bloqueado;
+              return (
+                <div key={section.label} style={{ marginBottom: si < sections.length - 1 ? 4 : 0, opacity: bloqueado ? 0.55 : 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "10px 8px 4px" }}>
+                    <p style={{
+                      fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
+                      color: section.cor ? section.cor + (bloqueado ? "66" : "88") : "rgba(201,168,76,0.55)",
+                      margin: 0, flex: 1,
+                    }}>
+                      {section.label}
+                    </p>
+                    {bloqueado && section.linkAquisicao && (
+                      <a
+                        href={section.linkAquisicao}
+                        target={section.linkAquisicao.startsWith("http") ? "_blank" : undefined}
+                        rel={section.linkAquisicao.startsWith("http") ? "noopener noreferrer" : undefined}
                         onClick={() => setOpen(false)}
-                        className={`sidebar-link ${active ? "active" : ""}`}
-                        style={!livre ? { opacity: 0.45 } : {}}
+                        style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, background: (section.cor ?? "#C9A84C") + "18", border: `1px solid ${(section.cor ?? "#C9A84C")}33`, fontSize: 8, fontWeight: 700, color: section.cor ?? "#C9A84C", textDecoration: "none", letterSpacing: "0.04em", textTransform: "uppercase", flexShrink: 0 }}
                       >
-                        <Icon size={15} />
-                        {label}
-                        {!livre && <Lock size={10} style={{ marginLeft: "auto", opacity: 0.7 }} />}
-                      </Link>
-                    );
-                  })}
+                        <Lock size={7} /> Adquirir
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {section.items.map(({ href, icon: Icon, label }) => {
+                      if (bloqueado) {
+                        return (
+                          <a
+                            key={href}
+                            href={section.linkAquisicao ?? "/mentorada/produtos"}
+                            target={section.linkAquisicao?.startsWith("http") ? "_blank" : undefined}
+                            rel={section.linkAquisicao?.startsWith("http") ? "noopener noreferrer" : undefined}
+                            onClick={() => setOpen(false)}
+                            className="sidebar-link"
+                            style={{ cursor: "pointer", textDecoration: "none" }}
+                          >
+                            <Lock size={13} style={{ flexShrink: 0 }} />
+                            <span style={{ flex: 1 }}>{label}</span>
+                          </a>
+                        );
+                      }
+                      const active = pathname === href || (href !== "/mentorada" && pathname.startsWith(href));
+                      return (
+                        <Link
+                          key={href}
+                          href={href}
+                          onClick={() => setOpen(false)}
+                          className={`sidebar-link ${active ? "active" : ""}`}
+                        >
+                          <Icon size={15} />
+                          {label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  {si < sections.length - 1 && (
+                    <div style={{ height: 1, background: "rgba(201,168,76,0.12)", margin: "8px 8px 0" }} />
+                  )}
                 </div>
-                {si < sections.length - 1 && (
-                  <div style={{ height: 1, background: "rgba(201,168,76,0.12)", margin: "8px 8px 0" }} />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </nav>
 
           {/* Social + logout */}

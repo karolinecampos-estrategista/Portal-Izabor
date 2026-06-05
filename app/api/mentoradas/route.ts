@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       whatsapp: body.whatsapp ?? null,
       instagram: body.instagram ?? null,
       aniversario: body.aniversario ?? null,
-      programa: body.programa ?? "Mentoria Individual",
+      programa: body.programa ?? "Mentoria",
       inicio: body.inicio ?? null,
       status: body.status ?? "ativo",
       sessoes_feitas: body.sessoes ?? 0,

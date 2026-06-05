@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Mail, Lock, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { Settings, Mail, Lock, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Configuracoes() {
@@ -13,6 +13,8 @@ export default function Configuracoes() {
   const [showConfirmar, setShowConfirmar] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [salvandoEmail, setSalvandoEmail] = useState(false);
+  const [enviandoRecuperacao, setEnviandoRecuperacao] = useState(false);
+  const [msgRecuperacao, setMsgRecuperacao] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
   const [salvandoSenha, setSalvandoSenha] = useState(false);
   const [msgEmail, setMsgEmail] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
   const [msgSenha, setMsgSenha] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
@@ -26,6 +28,21 @@ export default function Configuracoes() {
       setCarregando(false);
     });
   }, []);
+
+  async function enviarRecuperacao() {
+    if (!emailAtual || enviandoRecuperacao) return;
+    setEnviandoRecuperacao(true);
+    setMsgRecuperacao(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(emailAtual, {
+      redirectTo: `${window.location.origin}/acesso`,
+    });
+    setEnviandoRecuperacao(false);
+    if (error) {
+      setMsgRecuperacao({ tipo: "erro", texto: error.message });
+    } else {
+      setMsgRecuperacao({ tipo: "ok", texto: `Link enviado para ${emailAtual}. Verifique sua caixa de entrada.` });
+    }
+  }
 
   async function salvarEmail() {
     if (!novoEmail.trim() || novoEmail === emailAtual || salvandoEmail) return;
@@ -199,6 +216,43 @@ export default function Configuracoes() {
               {salvandoSenha ? "Salvando..." : "Atualizar Senha"}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Recuperação de acesso */}
+      <div className="card" style={{ padding: "24px 24px", marginTop: 20, border: "1px solid var(--border)" }}>
+        <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(148,163,184,0.08)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ShieldCheck size={18} style={{ color: "var(--text-muted)" }} />
+          </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>Recuperação de acesso</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
+              Se esquecer sua senha, envie um link de redefinição para seu e-mail.
+            </p>
+          </div>
+        </div>
+
+        {msgRecuperacao && (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px", borderRadius: 8, marginBottom: 12, background: msgRecuperacao.tipo === "ok" ? "rgba(134,239,172,0.1)" : "rgba(252,165,165,0.1)", border: `1px solid ${msgRecuperacao.tipo === "ok" ? "rgba(134,239,172,0.25)" : "rgba(252,165,165,0.25)"}` }}>
+            {msgRecuperacao.tipo === "ok"
+              ? <CheckCircle2 size={14} style={{ color: "#86efac", flexShrink: 0, marginTop: 1 }} />
+              : <AlertCircle size={14} style={{ color: "#fca5a5", flexShrink: 0, marginTop: 1 }} />}
+            <span style={{ fontSize: 12, color: msgRecuperacao.tipo === "ok" ? "#86efac" : "#fca5a5", lineHeight: 1.5 }}>{msgRecuperacao.texto}</span>
+          </div>
+        )}
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
+            Link será enviado para: <strong style={{ color: "var(--text-soft)" }}>{emailAtual}</strong>
+          </p>
+          <button
+            onClick={enviarRecuperacao}
+            disabled={enviandoRecuperacao}
+            style={{ padding: "9px 18px", borderRadius: 8, background: "transparent", border: "1px solid var(--border)", cursor: enviandoRecuperacao ? "not-allowed" : "pointer", color: "var(--text-soft)", fontSize: 13, fontWeight: 600, opacity: enviandoRecuperacao ? 0.5 : 1 }}
+          >
+            {enviandoRecuperacao ? "Enviando..." : "Enviar link de recuperação"}
+          </button>
         </div>
       </div>
 

@@ -18,7 +18,7 @@ export default function BoxLivroMentorada() {
   }
 
   return (
-    <BloqueadoPorProduto produto="livro" ativo={!!perfil.produtosAtivos?.livro}>
+    <BloqueadoPorProduto produto="livro" ativo={!!perfil.produtosAtivos?.box_livro}>
       <div style={{ maxWidth: 860, margin: "0 auto" }}>
         <div style={{ marginBottom: 24 }}>
           <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>

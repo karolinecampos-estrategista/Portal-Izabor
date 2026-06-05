@@ -6,7 +6,7 @@ import Sidebar from "./Sidebar";
 import SidebarMentorada from "./SidebarMentorada";
 import { supabase } from "@/lib/supabase";
 
-const ROTAS_PUBLICAS = ["/login", "/acesso", "/mentorada/acolhimento"];
+const ROTAS_PUBLICAS = ["/login", "/acesso", "/mentorada/acolhimento", "/portal"];
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -58,7 +58,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   return (
     <>
       {isPortalExtra && tipo === "extraordinaria"
-        ? <SidebarMentorada mostrarFinanceiro={mostrarFinanceiro} produtosAtivos={produtosAtivos} />
+        ? <SidebarMentorada produtosAtivos={produtosAtivos} />
         : <Sidebar />
       }
       <main className="main-layout">

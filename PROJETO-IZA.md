@@ -10,303 +10,273 @@
 |---|---|
 | **Cliente** | Izabor Cruz — Mentora de Mulheres INCOMUNS |
 | **Stack** | Next.js 16 · TypeScript · Tailwind · Supabase · Vercel |
-| **URL produção** | https://projeto-iza-nine.vercel.app *(conta Izabor)* |
+| **URL produção** | https://projeto-iza-nine.vercel.app |
 | **Diretório local** | `/Users/karolinecampos/Downloads/Claude/projeto-iza` |
 | **Vercel scope** | `izabor-cruz-projetos-projects` |
-| **Supabase URL** | `https://hsutkpgtlhlvhugvtmelk.supabase.co` |
-| **Supabase projeto** | `portal-izabor` |
-| **Design** | Dark theme premium — fundo `#080808`, dourado `#C9A84C` |
+| **Supabase URL** | `https://hsukpgtlhlvhugvtmelk.supabase.co` |
+| **GitHub** | https://github.com/karolinecampos-estrategista/Portal-Izabor |
 
-### Credenciais de acesso
-> ⚠️ Credenciais removidas deste arquivo por segurança. Guardar em local seguro (1Password, Notion privado, etc.)
-- **Admin login:** izaborcruzprojetos@gmail.com + senha definida pela Izabor
-- **Supabase keys:** encontradas em Supabase Dashboard → Settings → API
-- **Variáveis de ambiente:** configuradas no Vercel Dashboard da conta Izabor
+### ⚠️ CONTAS SEPARADAS — NUNCA MISTURAR COM AS CONTAS DA KAROLINE
 
-### Como fazer deploy
+> Tudo deste projeto sobe na conta da **Izabor Cruz**, não na conta pessoal da Karoline Campos.
+
+| Serviço | Conta | Login |
+|---|---|---|
+| **Vercel** | Conta da Izabor (`izabor-cruz-projetos-projects`) | izaborcruzprojetos@gmail.com |
+| **Supabase** | Projeto `portal-izabor` na conta da Izabor | izaborcruzprojetos@gmail.com |
+| **GitHub** | Repositório na conta da Izabor | https://github.com/karolinecampos-estrategista/Portal-Izabor |
+
+### Credenciais
+- **Admin portal:** izaborcruzprojetos@gmail.com / IzaBW@2025!
+- **Supabase dashboard:** izaborcruzprojetos@gmail.com / IzaProjetos2026 (**senha DIFERENTE do portal**)
+- **Env vars (.env.local):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+
+### Deploy — SEMPRE usar o scope da Izabor
 ```bash
 cd /Users/karolinecampos/Downloads/Claude/projeto-iza
 npx vercel --prod --yes --scope izabor-cruz-projetos-projects
 ```
+> Se rodar sem `--scope izabor-cruz-projetos-projects` pode subir na conta errada (Karoline). Sempre confirmar.
 
 ---
 
-## 2. Sistema de Acesso por Perfil (novo — 04/06/2026)
+## 2. Estado Atual — Atualizado em 05/06/2026
 
-Campo `acesso` na tabela `mentoradas`:
-- `mentoria` (padrão) — portal completo de mentoria
-- `livro` — apenas Box do Livro + Produtos + Cupons
-- `ambos` — tudo liberado
+### ✅ Sidebar Admin — Estrutura final
 
-A Izabor define o acesso em Mentorandas → Editar → "Acesso ao Portal".
-Migration aplicada: `ALTER TABLE mentoradas ADD COLUMN IF NOT EXISTS acesso TEXT DEFAULT 'mentoria';`
+**Seção Produtos**
+- SI · Cadastro → `/seja-incomum`
+- SI · Aulas → `/aulas-bw`
+- Livro · Compradores → `/box-livro`
+- Livro · Conteúdo → `/box-livro/conteudo`
+- Eventos · Cadastro → `/eventos` ← compradores de INGRESSO (não gestão de eventos)
 
----
+**Seção Club BW**
+- Cadastro → `/club-bw` ← PRIMEIRO item
+- Dashboard → `/dashboard-mentorandas`
+- Diagnósticos → `/diagnosticos`
+- Check-in Semanal → `/checkin`
+- Sessões → `/sessoes`
+- Planos de Ação → `/planos`
+- Devocionais → `/devocionais`
+- Desafios → `/desafios`
+- Tarefas → `/tarefas-mentoradas`
+- Depoimentos → `/depoimentos-admin`
+- Chat → `/chat-admin`
 
-## Estado Atual — O Que Está Pronto (atualizado 04/06/2026)
+**Seção Conta**
+- Acessos · Extraordinárias → `/usuarios`
+- Configurações → `/configuracoes`
 
-### ✅ Frontend completo (todas as páginas)
-Dois portais separados com design dark/gold premium:
-- **Admin (Izabor)** em `/` — sidebar reorganizada (Produtos acima de Mentoradas), seção Mentoradas (antes Alunas), Evento visível na sidebar
-- **Mentorada** em `/mentorada/*` — login "/acesso" = "Login das Extraordinárias", logo mobile com fundo preto integrado
+### ✅ Terminologia por produto — IMPORTANTE
 
-### ✅ Sidebar Admin — Ordem correta (04/06/2026)
-Seção Produtos (acima): Visão Geral · Mentoria Ind. Mentoradas · Mentoria Ind. Aulas · Livro Compradores · Livro Conteúdo · **Evento Compradores**
-Seção Mentoradas: Dashboard → Cadastro → Diagnósticos → Check-in → Sessões → Planos → Devocionais → Desafios → Tarefas → Depoimentos → Chat
+| Produto | Participantes chamam-se |
+|---|---|
+| Seja Incomum (SI) | **Alunas** |
+| Club BW | **Mentoradas** |
 
-### ✅ Produtos atualizados
-- Seja Incomum: tipo "Mentoria Individual" (não "Curso")
-- Club BW: tipo "Mentoria · 6 meses" (não "Assinatura Mensal"), 6 meses de acompanhamento
+### ✅ Status por produto
 
-### ⚠️ MIGRATION OBRIGATÓRIA — Rodar antes de testar compradores
-Arquivo: `supabase-migration-produtos.sql` na raiz do projeto.
-Colar no Supabase > SQL Editor e rodar. Cria:
-- `seja_incomum_compradores` — mentoradas da mentoria individual
-- `evento_compradores` — participantes do Evento Simplesmente Seja  
-- `box_livro_compradores` — compradores do Box do Livro (agora conectado ao banco)
-
-### ✅ Backend Supabase — Database
-Tabelas criadas e ativas (via supabase-schema.sql):
-- `perfis` — tipo admin/mentorada, vinculado a auth.users
-- `mentoradas` — cadastro completo das mentoradas (com campo `acesso`)
-- `sessoes` — histórico de sessões
-- `check_ins` — check-ins semanais
-- `diagnosticos` — quiz emocional/espiritual
-- `planos` + `marcos` — planos de ação e metas
-- `devocionais` — mensagens publicáveis
-- `aulas_bw` — aulas por módulo
-- `desafios` — desafios enviáveis
-- `tarefas` — tarefas das mentoradas
-
-Trigger automático: ao criar usuário no Auth → cria perfil na tabela `perfis`.  
-RLS (Row Level Security) ativo em todas as tabelas.
-
-### ✅ Autenticação real
-- Login com Supabase Auth (email + senha)
-- Verificação de tipo (admin vs mentorada) via tabela `perfis`
-- Redirecionamento automático: admin → `/`, mentorada → `/mentorada`
-- Logout real em ambas as sidebars
-- Loading spinner durante verificação de sessão
-
-### ✅ Mentoradas — API conectada (mock data removido)
-- `GET /api/mentoradas` — lista do banco
-- `POST /api/mentoradas` — cria + envia convite por e-mail (Supabase Auth)
-- `PATCH /api/mentoradas` — edita dados
-- Página `/mentorandas` carrega dados reais do Supabase
-- Ao cadastrar mentorada com e-mail → convite automático enviado
-
-### ✅ Admin configurado
-- ID: `2e89ebd4-7741-4713-9041-e34f114264e1`
-- Email: `izaborcruzprojetos@gmail.com`
-- Tipo: `admin` na tabela `perfis`
+| Produto | Status aceitos |
+|---|---|
+| SI | ativo / pendente / inativo |
+| Club BW | **ativo / encerrado / cancelado** (NÃO usar pendente/inativo) |
+| Box Livro | ativo / pendente / cancelado |
+| Eventos | confirmado / pendente / cancelado |
 
 ---
 
-## 3. Próximos Passos — Em Ordem de Prioridade
+## 3. Sistema de Acesso das Extraordinárias (implementado 04/06/2026)
 
-### ✅ FASE 1 — Conectar seções ao Supabase (CONCLUÍDA em 04/06/2026)
+### Como funciona
+Ao cadastrar compradora em qualquer seção → sistema automaticamente:
+1. Cria usuária no Supabase Auth via `inviteUserByEmail` → envia e-mail de convite
+2. Cria registro em `mentoradas` com **apenas** o produto adquirido liberado (boolean = true)
+3. Admin pode liberar/revogar outros produtos individualmente via painel ProdutosAcesso
 
-APIs criadas e páginas atualizadas:
+### Arquivos do sistema
+- `lib/criar-acesso-extraordinaria.ts` — função central (email, nome, produto) → cria/atualiza acesso
+- `app/api/acesso-extraordinaria/route.ts` — GET ?email= / PATCH (toggle acesso) / POST (reenviar convite)
+- `components/ProdutosAcesso.tsx` — painel admin com 4 produtos, status, link e botões
+  - Prop `defaultProduto?: "seja_incomum" | "club_bw" | "box_livro" | "evento"`
 
-| Seção | API | Página admin | Status |
-|---|---|---|---|
-| Mentoradas | `app/api/mentoradas/route.ts` | `app/mentorandas/page.tsx` | ✅ |
-| Sessões | `app/api/sessoes/route.ts` | `app/sessoes/page.tsx` | ✅ |
-| Check-ins | `app/api/checkins/route.ts` | `app/checkin/page.tsx` | ✅ |
-| Devocionais | `app/api/devocionais/route.ts` | `app/devocionais/page.tsx` | ✅ |
-| Aulas BW | `app/api/aulas/route.ts` | `app/aulas-bw/page.tsx` | ✅ |
-| Desafios | `app/api/desafios/route.ts` ✅ | `app/desafios/page.tsx` ✅ | ✅ |
-| Tarefas | `app/api/tarefas/route.ts` ✅ | `app/tarefas-mentoradas/page.tsx` ✅ | ✅ |
-| Planos | `app/api/planos/route.ts` ✅ | `app/planos/page.tsx` ✅ | ✅ |
-| Diagnósticos | `app/api/diagnosticos/route.ts` ✅ | `app/diagnosticos/page.tsx` ✅ | ✅ |
+### Página /usuarios — Gestão de Acessos
+- `app/usuarios/page.tsx` — lista todas as extraordinárias, bloquear/liberar, reset de senha
+- `app/api/usuarios-admin/route.ts` — usa `supabaseAdmin.auth.admin.listUsers()` + join perfis + mentoradas
+- Ações disponíveis: `bloquear` (ban 876000h) / `desbloquear` / `atualizar_acesso` / `resetar_senha`
 
-**MIGRATIONS PENDENTES — Rodar no Supabase > SQL Editor:**
-```sql
--- Arquivo 1: supabase-migration-devocionais.sql
-ALTER TABLE devocionais ADD COLUMN IF NOT EXISTS versiculo TEXT;
-ALTER TABLE devocionais ADD COLUMN IF NOT EXISTS categoria TEXT DEFAULT 'Fe';
-ALTER TABLE devocionais ADD COLUMN IF NOT EXISTS destaque BOOLEAN DEFAULT FALSE;
+### Bug corrigido: perfil/route.ts
+O arquivo `app/api/perfil/route.ts` foi corrigido para suportar DOIS sistemas de acesso (legado user_id + novo id):
+```typescript
+// query com .or() para pegar registro pelo user_id OU id
+const { data: m } = await supabaseAdmin
+  .from("mentoradas")
+  .select("acesso, mostrar_financeiro, produtos_ativos, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento")
+  .or(`user_id.eq.${user.id},id.eq.${user.id}`)
+  .maybeSingle();
 
--- Arquivo 2: supabase-migration-tarefas.sql
-ALTER TABLE tarefas ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'acao';
-```
-
-### 🟡 FASE 2 — Portal da mentorada com dados reais (próxima etapa)
-
-### 🟡 FASE 2 — Portal da Mentorada com dados reais
-
-Após a Fase 1, o portal da mentorada precisa mostrar dados reais:
-- Devocional do dia → busca do banco (mais recente publicado)
-- Desafios da semana → busca do banco para aquela mentorada
-- Próximos encontros → busca das sessões agendadas
-- Aulas → busca aulas publicadas
-- Plano de ação → busca plano da mentorada
-- Check-in → salva no banco
-
-### 🟡 FASE 3 — E-mail personalizado (Resend)
-
-Supabase envia e-mail básico de convite. Para e-mails personalizados (com logo da Izabor, QR code, etc.):
-
-1. Criar conta em resend.com com e-mail da Izabor
-2. Adicionar env var: `RESEND_API_KEY`
-3. Criar `app/api/email/route.ts`
-4. Personalizar: boas-vindas, reset de senha, confirmações
-
-```bash
-# Adicionar env var no Vercel da Izabor:
-npx vercel env add RESEND_API_KEY production --scope izabor-cruz-projetos-projects
-```
-
-### 🟡 FASE 4 — URL do site no Vercel
-
-Adicionar a URL oficial para que os links nos e-mails de convite funcionem corretamente:
-```bash
-npx vercel env add NEXT_PUBLIC_SITE_URL production --scope izabor-cruz-projetos-projects
-# Valor: https://projeto-iza.vercel.app (ou domínio personalizado)
-```
-
-### 🟢 FASE 5 — Portal de Eventos
-
-Ver seção 7 abaixo.
-
----
-
-## 4. Estrutura de Arquivos
-
-```
-projeto-iza/
-├── app/
-│   ├── api/
-│   │   ├── mentoradas/route.ts   ✅ GET, POST, PATCH
-│   │   ├── sessoes/route.ts      ✅ GET, POST, PATCH
-│   │   ├── checkins/route.ts     ✅ GET, POST
-│   │   ├── devocionais/route.ts  ✅ GET, POST, PATCH, DELETE
-│   │   └── aulas/route.ts        ✅ GET, POST, PATCH, DELETE
-│   ├── login/page.tsx            ✅ auth real
-│   ├── mentorandas/page.tsx      ✅ dados reais
-│   ├── sessoes/page.tsx          ✅ dados reais
-│   ├── checkin/page.tsx          ✅ dados reais
-│   ├── devocionais/page.tsx      ✅ dados reais
-│   ├── aulas-bw/page.tsx         ✅ dados reais
-│   ├── (demais páginas admin)    ⏳ ainda mock
-│   └── mentorada/
-│       └── (todas as páginas)    ⏳ ainda mock
-├── components/
-│   ├── LayoutShell.tsx           ✅ auth guard real
-│   ├── Sidebar.tsx               ✅ logout real
-│   └── SidebarMentorada.tsx      ✅ logout real
-├── lib/
-│   ├── supabase.ts               ✅ cliente público
-│   └── supabase-admin.ts         ✅ cliente admin
-├── scripts/
-│   └── criar-admin.mjs           utilitário
-├── supabase-schema.sql            ✅ schema completo
-└── .env.local                     ✅ credenciais locais
+// mescla sistema legado (produtos_ativos JSON) + novo (colunas booleanas)
+const produtosAtivos = {
+  ...(m?.produtos_ativos ?? {}),
+  ...(m?.acesso_seja_incomum ? { seja_incomum: true } : {}),
+  ...(m?.acesso_club_bw      ? { club_bw: true }      : {}),
+  ...(m?.acesso_box_livro    ? { box_livro: true }    : {}),
+  ...(m?.acesso_evento       ? { evento: true }       : {}),
+};
 ```
 
 ---
 
-## 5. Backup e Segurança
+## 4. Banco de Dados — Tabelas
 
-### Backup do banco (Supabase)
-O plano gratuito do Supabase não tem backup automático com point-in-time recovery. Estratégia recomendada:
+| Tabela | Finalidade |
+|---|---|
+| `perfis` | id, nome, tipo (admin/mentorada), email |
+| `mentoradas` | Acesso portal + flags de produtos |
+| `seja_incomum_compradores` | Alunas do Seja Incomum |
+| `club_bw_compradores` | Mentoradas do Club BW (status: ativo/encerrado/cancelado) |
+| `box_livro_compradores` | Compradores do Box Livro (inclui campo email) |
+| `evento_ingressos` | Compradores de ingresso do evento |
+| `aulas_bw` | Aulas por módulo |
+| `devocionais` | Mensagens publicáveis |
+| `desafios` | Desafios enviáveis |
+| `tarefas` | Tarefas das mentoradas |
+| `check_ins` | Check-ins semanais das mentoradas |
+| `diagnosticos` | Quiz emocional/espiritual |
+| `sessoes` | Histórico de sessões |
+| `planos` + `marcos` | Planos de ação e metas |
 
-**Backup manual semanal:**
-1. Supabase dashboard → Settings → Database
-2. Clica em "Database backups" (se disponível no plano)
-3. OU: SQL Editor → rodar `pg_dump` via query para exportar dados
-
-**Backup do schema (já feito):**
-- Arquivo `supabase-schema.sql` na raiz do projeto
-- Se o banco for deletado acidentalmente, rodar esse arquivo recria tudo
-
-**Upgrade recomendado (quando houver clientes reais):**
-- Supabase Pro ($25/mês) → backups diários automáticos + point-in-time recovery
-
-### Backup do código
-- Código está local em `/Users/karolinecampos/Downloads/Claude/projeto-iza`
-- Recomendado: criar repositório no GitHub para backup automático
-```bash
-# Quando quiser criar backup no GitHub:
-cd /Users/karolinecampos/Downloads/Claude/projeto-iza
-git init
-git add .
-git commit -m "Portal Izabor Cruz — versão inicial"
-# Criar repo em github.com e fazer push
-```
-
-### Variáveis de ambiente no Vercel (já configuradas)
-```
-NEXT_PUBLIC_SUPABASE_URL        ✅
-NEXT_PUBLIC_SUPABASE_ANON_KEY   ✅
-SUPABASE_SERVICE_ROLE_KEY       ✅
-NEXT_PUBLIC_SITE_URL            ⏳ adicionar
-RESEND_API_KEY                  ⏳ adicionar (Fase 3)
-```
+### Colunas de acesso em `mentoradas`
+- `acesso_seja_incomum` BOOLEAN DEFAULT false
+- `acesso_club_bw` BOOLEAN DEFAULT false
+- `acesso_box_livro` BOOLEAN DEFAULT false
+- `acesso_evento` BOOLEAN DEFAULT false
+- `convite_enviado` BOOLEAN DEFAULT false
 
 ---
 
-## 6. Como Retomar o Trabalho em um Novo Chat
+## 5. Migrations — Estado
 
-**Copie e cole isso no início de qualquer novo chat:**
+| Arquivo | Status |
+|---|---|
+| `supabase-schema.sql` | ✅ base do banco |
+| `supabase-migration-produtos.sql` | ✅ executado — cria seja_incomum_compradores, evento_compradores, box_livro_compradores |
+| `supabase-migration-acesso-produtos.sql` | ✅ executado — adiciona 5 colunas booleanas a mentoradas |
+| `supabase-migration-devocionais.sql` | ✅ executado |
+| `supabase-migration-tarefas.sql` | ✅ executado |
+| `supabase-migration-eventos.sql` | ⚠️ **PENDENTE** — rodar no Supabase > SQL Editor |
+
+### Conteúdo do migration pendente (`supabase-migration-eventos.sql`)
+Cria 4 coisas:
+1. Tabela `eventos` (gestão de eventos — reservada para futuro)
+2. Campo `email` em `box_livro_compradores`
+3. Tabela `club_bw_compradores` (status: ativo/encerrado/cancelado)
+4. Tabela `evento_ingressos` (tipo: normal/vip/cortesia; status: confirmado/pendente/cancelado)
+
+---
+
+## 6. Páginas — APIs e Funcionalidades
+
+### Admin
+
+| Página | Rota | API | Tabela | Status |
+|---|---|---|---|---|
+| SI · Cadastro | `/seja-incomum` | `/api/seja-incomum` | `seja_incomum_compradores` | ✅ |
+| SI · Aulas | `/aulas-bw` | `/api/aulas` | `aulas_bw` | ✅ |
+| Livro · Compradores | `/box-livro` | `/api/box-livro` | `box_livro_compradores` | ✅ |
+| Livro · Conteúdo | `/box-livro/conteudo` | — | — | ✅ |
+| Eventos · Ingressos | `/eventos` | `/api/evento-ingressos` | `evento_ingressos` | ✅ |
+| Club BW · Cadastro | `/club-bw` | `/api/club-bw` | `club_bw_compradores` | ✅ |
+| Dashboard mentoradas | `/dashboard-mentorandas` | `/api/mentoradas` | `mentoradas` | ✅ |
+| Diagnósticos | `/diagnosticos` | `/api/diagnosticos` | `diagnosticos` | ✅ |
+| Check-in | `/checkin` | `/api/checkins` | `check_ins` | ✅ |
+| Sessões | `/sessoes` | `/api/sessoes` | `sessoes` | ✅ |
+| Planos | `/planos` | `/api/planos` | `planos` | ✅ |
+| Devocionais | `/devocionais` | `/api/devocionais` | `devocionais` | ✅ |
+| Desafios | `/desafios` | `/api/desafios` | `desafios` | ✅ |
+| Tarefas admin | `/tarefas-mentoradas` | `/api/tarefas` | `tarefas` | ✅ |
+| Gestão de acessos | `/usuarios` | `/api/usuarios-admin` | Auth + perfis + mentoradas | ✅ |
+
+### Portal da Mentorada
+
+| Página | Rota | Status |
+|---|---|---|
+| Home | `/mentorada` | ✅ |
+| Aulas | `/mentorada/aulas` | ✅ (protegida por acesso SI) |
+| Devocional | `/mentorada/devocional` | ✅ |
+| Box do Livro | `/mentorada/box-livro` | ✅ (protegida por acesso livro) |
+| Check-in | `/mentorada/checkin` | ✅ |
+| Tarefas | `/mentorada/tarefas` | ✅ |
+| Jornada/Desafios | `/mentorada/jornada` | ✅ |
+| Diagnóstico | `/mentorada/diagnostico` | ✅ |
+| Plano de ação | `/mentorada/plano` | ✅ |
+| Depoimentos | `/mentorada/depoimentos` | ✅ |
+
+---
+
+## 7. Componentes Importantes
+
+### `components/ProdutosAcesso.tsx`
+Painel admin que aparece no detalhe de cada compradora. Exibe os 4 produtos com botão Liberar/Revogar.
+- Usar prop `defaultProduto` ao renderizar em cada seção:
+  - SI: `<ProdutosAcesso email={c.email} nome={c.nome} />` (default já é seja_incomum)
+  - Club BW: `<ProdutosAcesso email={c.email} nome={c.nome} defaultProduto="club_bw" />`
+  - Box Livro: `<ProdutosAcesso email={c.email} nome={c.nome} defaultProduto="box_livro" />`
+  - Evento: `<ProdutosAcesso email={c.email} nome={c.nome} defaultProduto="evento" />`
+
+### `components/BloqueadoPorProduto.tsx`
+Envolve páginas da mentorada com tela de bloqueio se ela não tem o produto.
+- Páginas protegidas: `/mentorada/aulas`, `/mentorada/box-livro`, `/mentorada/devocional`
+
+### `lib/criar-acesso-extraordinaria.ts`
+Chamado em todas as APIs de cadastro de compradora. Best-effort: `.catch(() => null)` nunca bloqueia.
+
+---
+
+## 8. Testes Realizados (05/06/2026) — TODOS ✅
+
+| Teste | Resultado |
+|---|---|
+| Login admin (Izabor) | ✅ |
+| Cadastro aluna em SI + criação de conta Extraordinária | ✅ |
+| Cadastro mentorada em Club BW + criação de conta | ✅ |
+| Cadastro compradora em Box Livro + criação de conta | ✅ |
+| Cadastro ingresso em Eventos | ✅ |
+| Criar tarefa (admin → mentorada) | ✅ |
+| Criar desafio (admin) | ✅ |
+| Criar devocional (admin) | ✅ |
+| /usuarios — logins visíveis, bloquear/liberar | ✅ |
+| Login como extraordinária (Ana — somente SI) | ✅ |
+| Aulas SI acessíveis para Ana | ✅ |
+| Box do Livro bloqueado para Ana (sem acesso) | ✅ |
+| Devocional acessível para Ana | ✅ |
+| Tarefas visíveis para Ana | ✅ (2 pendentes) |
+| Check-in enviado por Ana | ✅ |
+| Jornada/Desafios acessível para Ana | ✅ |
+
+---
+
+## 9. Como Retomar em Novo Chat
+
+Cole no início do novo chat:
 
 > "Estou trabalhando no portal da Izabor Cruz. O projeto está em `/Users/karolinecampos/Downloads/Claude/projeto-iza`. Leia o arquivo `PROJETO-IZA.md` na raiz do projeto para entender tudo que já foi feito e o que fazer a seguir."
 
-O arquivo que você está lendo agora contém TUDO. Qualquer Claude que ler isso sabe exatamente onde estamos e o que fazer.
+---
+
+## 10. Próximos Passos Sugeridos
+
+1. **Rodar migration pendente** — `supabase-migration-eventos.sql` no Supabase > SQL Editor (cria tabelas club_bw_compradores e evento_ingressos)
+2. **E-mail personalizado** — Resend para enviar convite com visual da Izabor (logo, QR Code)
+3. **Domínio personalizado** — apontar domínio da Izabor para o Vercel
+4. **Portal de Eventos completo** — QR Code de ingresso, check-in no evento (scanner), materiais pós-evento
 
 ---
 
-## 7. Visão Futura — Portal de Eventos
+## 11. Identidade do Negócio da Izabor
 
-Quando a Izabor quiser expandir para eventos:
-
-### Fluxo técnico completo
-```
-Compra confirmada (Hotmart/Kiwify/Monetizze)
-    → Webhook para: /api/webhook/compra
-    → API route recebe dados da compra
-    → Cria usuário no Supabase Auth (inviteUserByEmail)
-    → Gera QR Code único (biblioteca: npm install qrcode)
-    → Resend envia e-mail com login + QR Code
-    → Participante aparece no dashboard como "Confirmado"
-    → No evento: scanner valida QR → status vira "Presente"
-```
-
-### Módulos do portal de eventos
-- Página do evento (data, programação, palestrantes)
-- Gerenciamento de ingressos (variantes: VIP, regular, etc.)
-- QR Code por participante
-- Check-in no evento (scanner mobile)
-- Dashboard: comprou / compareceu / não compareceu
-- Materiais pós-evento (acesso exclusivo para presentes)
-- CRM de leads (quem demonstrou interesse mas não comprou)
-
-### Implementação (quando chegar a hora)
-1. `npm install qrcode` + `npm install @types/qrcode`
-2. `app/api/webhook/[plataforma]/route.ts` — recebe webhook
-3. `app/api/eventos/route.ts` — CRUD de eventos
-4. `app/api/ingressos/route.ts` — gerencia participantes
-5. Tabelas novas no Supabase: `eventos`, `ingressos`, `participantes`
-
----
-
-## 8. CRM e Remarketing (Visão Futura)
-
-- Pipeline de leads (Kanban: Lead → Interesse → Proposta → Fechado)
-- Histórico de interações por lead
-- Alertas de follow-up automáticos
-- Segmentação por origem (Instagram, evento, indicação, anúncio)
-- Geração de copy personalizada por IA para cada segmento
-- Gestão de anúncios Meta Ads / TikTok Ads
-
----
-
-## 9. Identidade do Negócio da Izabor
-
-**Programas:** Mentoria Individual · Mentoria BW (24 sessões) · Club BW · Imersão BW  
-**Pilares:** Fé · Mentalidade · Liderança (+ Emocional, Família)  
-**Tom:** Acolhedor, espiritual, transformador. Deus e fé como centro.  
-**Abordagem:** Inteligência emocional e espiritual — o negócio melhora como consequência da transformação interior.  
+**Programas:** Seja Incomum (Mentoria Individual) · Club BW (6 meses) · Box do Livro · Evento "Simplesmente Seja"
+**Pilares:** Fé · Mentalidade · Liderança · Emocional · Família
+**Tom:** Acolhedor, espiritual, transformador. Deus e fé como centro.
+**IMPORTANTE:** O diagnóstico e check-in são sobre a MULHER, não sobre o negócio. Nunca perguntar sobre faturamento.
 **Instagram:** @izaborcruz_ · **YouTube:** @izaborcruz_
-
-**IMPORTANTE:** O diagnóstico e o check-in são sobre a MULHER, não sobre o negócio. Nunca perguntar sobre faturamento, clientes ou métricas no diagnóstico.

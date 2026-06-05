@@ -6,7 +6,7 @@ import { FileText, CheckCircle, Clock, Plus, X, Loader2 } from "lucide-react";
 type Marco = { id: string; texto: string; feito: boolean; semana: string; ordem: number };
 type Plano = { id: string; mentorada_nome: string; cor: string; programa: string; marcos: Marco[] };
 
-const PROGRAMAS = ["Mentoria BW", "Mentoria Individual", "Club BW", "Imersão BW"];
+const PROGRAMAS = ["Mentoria BW", "Mentoria", "Club BW", "Imersão BW"];
 
 export default function PlanosPage() {
   const [planos, setPlanos] = useState<Plano[]>([]);

@@ -116,9 +116,11 @@ export default function Sidebar() {
         className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4"
         style={{ background: "var(--sidebar-bg)", borderBottom: "1px solid var(--sidebar-border)", height: 52 }}
       >
-        <div style={{ width: 36, height: 36, background: "#000", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
-          <img src="/bw1.jpeg" alt="Build Woman" style={{ height: 36, width: 36, objectFit: "contain", mixBlendMode: "screen" }} />
-        </div>
+        <img
+          src="/bw1.jpeg"
+          alt="Build Woman"
+          style={{ height: 42, width: 42, objectFit: "contain", mixBlendMode: "screen", flexShrink: 0 }}
+        />
         <button onClick={() => setOpen(!open)} style={{ color: "rgba(240,240,240,0.7)", background: "none", border: "none", cursor: "pointer" }}>
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>

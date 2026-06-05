@@ -16,6 +16,7 @@ import {
   KeyRound,
   Loader2,
 } from "lucide-react";
+import ProdutosAcesso from "@/components/ProdutosAcesso";
 
 interface Usuario {
   id: string;
@@ -219,6 +220,9 @@ export default function UsuariosAdmin() {
                           {acessoCfg[u.acesso].label}
                         </span>
                       )}
+                      {!!u.produtos_ativos?.club_bw && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: "rgba(167,139,250,0.12)", color: "#a78bfa", letterSpacing: "0.05em" }}>Club BW</span>
+                      )}
                     </div>
                     <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {u.email}
@@ -340,6 +344,9 @@ export default function UsuariosAdmin() {
                         {msgU.texto}
                       </div>
                     )}
+
+                    {/* Acessos por produto (SI, Club BW, Livro, Evento) */}
+                    <ProdutosAcesso email={u.email} nome={u.nome ?? u.email} />
                   </div>
                 )}
               </div>

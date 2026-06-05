@@ -16,6 +16,7 @@ type Mentorada = {
   instagram: string | null;
   aniversario: string | null;
   proxima_sessao: string | null;
+  acesso_club_bw: boolean;
 };
 
 export default function DashboardMentorandas() {
@@ -26,7 +27,7 @@ export default function DashboardMentorandas() {
   useEffect(() => {
     fetch("/api/mentoradas")
       .then(r => r.json())
-      .then(d => { setMentoradas(Array.isArray(d) ? d : []); setCarregando(false); });
+      .then(d => { setMentoradas(Array.isArray(d) ? d.filter((m: Mentorada) => m.acesso_club_bw) : []); setCarregando(false); });
   }, []);
 
   const ativas = mentoradas.filter(m => m.status === "ativo");
@@ -50,8 +51,8 @@ export default function DashboardMentorandas() {
           <LayoutGrid size={16} style={{ color: "var(--gold)" }} />
           <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Dashboard</span>
         </div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Visão das Mentoradas</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Acompanhe o progresso de cada aluna.</p>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Visão Club BW</h1>
+        <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Acompanhe o progresso das alunas do Club BW.</p>
       </div>
 
       {/* Stats */}

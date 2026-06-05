@@ -20,6 +20,9 @@ interface Compradora {
   mes_inicio: string | null;
   mes_fim: string | null;
   notas: string | null;
+  status_pagamento: string;
+  valor: number | null;
+  forma_pagamento: string | null;
 }
 
 const statusCfg: Record<StatusAcesso, { label: string; cor: string; bg: string }> = {
@@ -27,6 +30,22 @@ const statusCfg: Record<StatusAcesso, { label: string; cor: string; bg: string }
   encerrado: { label: "Encerrada", cor: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
   cancelado: { label: "Cancelada", cor: "#6b7280", bg: "rgba(107,114,128,0.12)" },
 };
+
+const PG_CFG: Record<string, { label: string; cor: string; bg: string }> = {
+  pago:     { label: "Pago",     cor: "#86efac", bg: "rgba(134,239,172,0.12)" },
+  parcial:  { label: "Parcial",  cor: "#fbbf24", bg: "rgba(251,191,36,0.12)"  },
+  pendente: { label: "Pendente", cor: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
+  isento:   { label: "Isento",   cor: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
+};
+
+function PgBadge({ status, valor }: { status: string; valor: number | null }) {
+  const pg = PG_CFG[status] ?? PG_CFG.pendente;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 999, fontSize: 9, fontWeight: 700, color: pg.cor, background: pg.bg, flexShrink: 0, whiteSpace: "nowrap" }}>
+      {pg.label}{valor != null ? ` · R$${Number(valor).toFixed(0)}` : ""}
+    </span>
+  );
+}
 
 function formatData(iso: string | null) {
   if (!iso) return "—";
@@ -40,24 +59,42 @@ const FORM_VAZIO: Omit<Compradora, "id"> = {
   data_compra: new Date().toISOString().split("T")[0],
   status_acesso: "ativo",
   mes_inicio: null, mes_fim: null, notas: null,
+  status_pagamento: "pendente", valor: null, forma_pagamento: null,
 };
+
+const PRODUTOS_OPCOES = [
+  { key: "seja_incomum", label: "Seja Incomum",      cor: "#C9A84C" },
+  { key: "club_bw",      label: "Club BW",           cor: "#a78bfa" },
+  { key: "box_livro",    label: "Box do Livro",       cor: "#86efac" },
+  { key: "evento",       label: "Simplesmente Seja",  cor: "#fb923c" },
+] as const;
+
+type AvisoAcesso = { nome: string; email: string; conviteEnviado: boolean; mensagem: string; linkAcesso?: string; slug?: string };
 
 export default function ClubBWCompradores() {
   const [compradoras, setCompradoras] = useState<Compradora[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [form, setForm] = useState<Omit<Compradora, "id">>(FORM_VAZIO);
+  const [formProdutos, setFormProdutos] = useState<string[]>(["club_bw"]);
   const [showForm, setShowForm] = useState(false);
   const [detalhe, setDetalhe] = useState<Compradora | null>(null);
   const [editando, setEditando] = useState<Compradora | null>(null);
   const [filtro, setFiltro] = useState<StatusAcesso | "todas">("todas");
   const [busca, setBusca] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [avisoAcesso, setAvisoAcesso] = useState<AvisoAcesso | null>(null);
 
   useEffect(() => {
     fetch("/api/club-bw")
       .then(r => r.json())
       .then(d => { setCompradoras(Array.isArray(d) ? d : []); setCarregando(false); });
   }, []);
+
+  function toggleProduto(key: string) {
+    setFormProdutos(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  }
 
   async function adicionar() {
     if (!form.nome.trim() || salvando) return;
@@ -71,11 +108,27 @@ export default function ClubBWCompradores() {
         statusAcesso: form.status_acesso,
         mesInicio: form.mes_inicio,
         mesFim: form.mes_fim,
+        statusPagamento: form.status_pagamento,
+        formaPagamento: form.forma_pagamento,
+        produtos: formProdutos,
       }),
     });
     const nova = await res.json();
-    if (nova?.id) setCompradoras(prev => [nova, ...prev]);
+    if (nova?.id) {
+      setCompradoras(prev => [nova, ...prev]);
+      if (form.email) {
+        setAvisoAcesso({
+          nome: form.nome,
+          email: form.email,
+          conviteEnviado: nova._acesso?.conviteEnviado ?? false,
+          mensagem: nova._acesso?.mensagem ?? "",
+          linkAcesso: nova._acesso?.linkAcesso,
+          slug: nova._acesso?.slug,
+        });
+      }
+    }
     setForm(FORM_VAZIO);
+    setFormProdutos(["club_bw"]);
     setShowForm(false);
     setSalvando(false);
   }
@@ -92,6 +145,8 @@ export default function ClubBWCompradores() {
         statusAcesso: editando.status_acesso,
         mesInicio: editando.mes_inicio,
         mesFim: editando.mes_fim,
+        statusPagamento: editando.status_pagamento,
+        formaPagamento: editando.forma_pagamento,
       }),
     });
     const at = await res.json();
@@ -212,16 +267,104 @@ export default function ClubBWCompradores() {
               <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Fim (mês)</label>
               <input type="month" value={form.mes_fim ?? ""} onChange={e => setForm({ ...form, mes_fim: e.target.value || null })} style={{ width: "100%", padding: "9px 12px", fontSize: 13 }} />
             </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Status do Pagamento</label>
+              <select value={form.status_pagamento} onChange={e => setForm({ ...form, status_pagamento: e.target.value })} style={{ width: "100%", padding: "9px 12px", fontSize: 13 }}>
+                <option value="pendente">Pendente</option>
+                <option value="pago">Pago</option>
+                <option value="parcial">Parcial</option>
+                <option value="isento">Isento</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Forma de Pagamento</label>
+              <select value={form.forma_pagamento ?? ""} onChange={e => setForm({ ...form, forma_pagamento: e.target.value || null })} style={{ width: "100%", padding: "9px 12px", fontSize: 13 }}>
+                <option value="">— selecione —</option>
+                <option value="pix">PIX</option>
+                <option value="cartao_credito">Cartão de Crédito</option>
+                <option value="boleto">Boleto</option>
+                <option value="transferencia">Transferência</option>
+                <option value="cortesia">Cortesia</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Valor (R$)</label>
+              <input type="number" min={0} step={0.01} value={form.valor ?? ""} onChange={e => setForm({ ...form, valor: e.target.value ? Number(e.target.value) : null })} placeholder="0,00" style={{ width: "100%", padding: "9px 12px", fontSize: 13 }} />
+            </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Notas</label>
               <textarea value={form.notas ?? ""} onChange={e => setForm({ ...form, notas: e.target.value || null })} rows={2} style={{ width: "100%", padding: "9px 12px", fontSize: 13, resize: "vertical" }} placeholder="Observações..." />
             </div>
+            {form.email && (
+              <div style={{ gridColumn: "1 / -1", padding: "14px 16px", background: "rgba(201,168,76,0.06)", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 10 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>
+                  Acesso ao portal
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.3)", borderRadius: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#a78bfa", display: "inline-block", flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#a78bfa" }}>Club BW</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: "auto" }}>será ativado</span>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, marginBottom: 0 }}>
+                  Um convite será enviado automaticamente para <strong style={{ color: "var(--text)" }}>{form.email}</strong>
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 justify-end" style={{ marginTop: 14 }}>
             <button className="btn-ghost" onClick={() => setShowForm(false)}>Cancelar</button>
             <button className="btn-gold" onClick={adicionar} disabled={!form.nome.trim() || salvando}>
-              {salvando ? "Salvando..." : "Salvar"}
+              {salvando ? "Enviando convite..." : "Salvar e enviar convite"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Aviso de acesso criado */}
+      {avisoAcesso && (
+        <div style={{ marginBottom: 20, padding: "16px 20px", background: "rgba(134,239,172,0.06)", border: "1px solid rgba(134,239,172,0.25)", borderRadius: 12, position: "relative" }}>
+          <button onClick={() => setAvisoAcesso(null)} style={{ position: "absolute", top: 10, right: 12, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 16 }}>×</button>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <span style={{ fontSize: 20 }}>✅</span>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "#86efac", margin: "0 0 4px" }}>
+                {avisoAcesso.nome} cadastrada com sucesso!
+              </p>
+              <p style={{ fontSize: 13, color: "var(--text)", margin: "0 0 10px" }}>
+                {avisoAcesso.conviteEnviado
+                  ? `Convite enviado para ${avisoAcesso.email}.`
+                  : avisoAcesso.mensagem}
+              </p>
+              {avisoAcesso.linkAcesso && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ padding: "10px 14px", background: "rgba(134,239,172,0.08)", border: "1px solid rgba(134,239,172,0.25)", borderRadius: 8, marginBottom: 8 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#86efac", margin: "0 0 6px" }}>🔗 Link exclusivo da aluna:</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <code style={{ flex: 1, fontSize: 11, background: "rgba(0,0,0,0.3)", padding: "5px 10px", borderRadius: 6, color: "var(--text)", wordBreak: "break-all" }}>{avisoAcesso.linkAcesso}</code>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(avisoAcesso.linkAcesso!)}
+                        style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 6, background: "rgba(134,239,172,0.15)", border: "1px solid rgba(134,239,172,0.3)", color: "#86efac", fontSize: 11, cursor: "pointer", fontWeight: 700 }}
+                      >Copiar</button>
+                    </div>
+                  </div>
+                  {avisoAcesso.conviteEnviado ? (
+                    <div style={{ padding: "10px 14px", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 8 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24", margin: "0 0 4px" }}>⚠️ Avise sua aluna:</p>
+                      <p style={{ fontSize: 12, color: "var(--text)", margin: 0, lineHeight: 1.6 }}>
+                        Ela receberá um e-mail da <strong>Supabase</strong> (remetente: <code style={{ background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4 }}>noreply@mail.app.supabase.io</code>) com o link para definir a senha. Você também pode enviar o link acima diretamente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ padding: "10px 14px", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 8 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24", margin: "0 0 4px" }}>ℹ️ Aluna já cadastrada:</p>
+                      <p style={{ fontSize: 12, color: "var(--text)", margin: 0, lineHeight: 1.6 }}>
+                        O e-mail automático não foi reenviado pois ela já possui conta. Copie o link acima e envie direto para ela pelo WhatsApp ou Instagram.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -276,6 +419,7 @@ export default function ClubBWCompradores() {
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 600, color: cfg.cor, background: cfg.bg, flexShrink: 0 }}>
                     {cfg.label}
                   </span>
+                  <PgBadge status={c.status_pagamento} valor={c.valor} />
                   {aberto ? <ChevronUp size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} /> : <ChevronDown size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
                 </div>
 
@@ -314,6 +458,30 @@ export default function ClubBWCompradores() {
                         <div>
                           <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Fim</label>
                           <input type="month" value={editando.mes_fim ?? ""} onChange={e => setEditando({ ...editando, mes_fim: e.target.value || null })} style={{ width: "100%", padding: "9px 12px", fontSize: 13 }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Status do Pagamento</label>
+                          <select value={editando.status_pagamento} onChange={e => setEditando({ ...editando, status_pagamento: e.target.value })} style={{ width: "100%", padding: "9px 12px", fontSize: 13 }}>
+                            <option value="pendente">Pendente</option>
+                            <option value="pago">Pago</option>
+                            <option value="parcial">Parcial</option>
+                            <option value="isento">Isento</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Forma de Pagamento</label>
+                          <select value={editando.forma_pagamento ?? ""} onChange={e => setEditando({ ...editando, forma_pagamento: e.target.value || null })} style={{ width: "100%", padding: "9px 12px", fontSize: 13 }}>
+                            <option value="">— selecione —</option>
+                            <option value="pix">PIX</option>
+                            <option value="cartao_credito">Cartão de Crédito</option>
+                            <option value="boleto">Boleto</option>
+                            <option value="transferencia">Transferência</option>
+                            <option value="cortesia">Cortesia</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Valor (R$)</label>
+                          <input type="number" min={0} step={0.01} value={editando.valor ?? ""} onChange={e => setEditando({ ...editando, valor: e.target.value ? Number(e.target.value) : null })} placeholder="0,00" style={{ width: "100%", padding: "9px 12px", fontSize: 13 }} />
                         </div>
                         <div style={{ gridColumn: "1 / -1" }}>
                           <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Notas</label>
@@ -373,8 +541,29 @@ export default function ClubBWCompradores() {
                             })}
                           </div>
                         </div>
+                        <div>
+                          <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Pagamento</p>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                            {(() => {
+                              const pgCfg: Record<string, { label: string; cor: string; bg: string }> = {
+                                pago:     { label: "Pago",    cor: "#86efac", bg: "rgba(134,239,172,0.12)" },
+                                parcial:  { label: "Parcial", cor: "#fbbf24", bg: "rgba(251,191,36,0.12)"  },
+                                pendente: { label: "Pendente",cor: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+                                isento:   { label: "Isento",  cor: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
+                              };
+                              const pg = pgCfg[c.status_pagamento] ?? pgCfg.pendente;
+                              return (
+                                <>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, color: pg.cor, background: pg.bg }}>{pg.label}</span>
+                                  {c.valor != null && <span style={{ fontSize: 12, color: "var(--text)" }}>R$ {Number(c.valor).toFixed(2).replace(".",",")}</span>}
+                                  {c.forma_pagamento && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>· {c.forma_pagamento.replace("_"," ")}</span>}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
                         <div style={{ gridColumn: "1 / -1" }}>
-                          <ProdutosAcesso email={c.email} nome={c.nome} />
+                          <ProdutosAcesso email={c.email} nome={c.nome} defaultProduto="club_bw" />
                         </div>
                         <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
                           <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setEditando({ ...c })}><Pencil size={12} /> Editar</button>

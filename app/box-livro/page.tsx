@@ -26,6 +26,9 @@ interface Compradora {
   status_upsell: StatusUpsell;
   tem_acesso_bw: boolean;
   notas: string | null;
+  status_pagamento: string;
+  valor: number | null;
+  forma_pagamento: string | null;
 }
 
 const VARIANTES: Record<VarianteBox, { label: string; cor: string; bg: string }> = {
@@ -54,11 +57,28 @@ const UPSELL_CONFIG: Record<StatusUpsell, { label: string; cor: string; bg: stri
   "convertida":   { label: "Convertida",   cor: "#86efac", bg: "rgba(134,239,172,0.12)" },
 };
 
+const PG_CFG: Record<string, { label: string; cor: string; bg: string }> = {
+  pago:     { label: "Pago",     cor: "#86efac", bg: "rgba(134,239,172,0.12)" },
+  parcial:  { label: "Parcial",  cor: "#fbbf24", bg: "rgba(251,191,36,0.12)"  },
+  pendente: { label: "Pendente", cor: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
+  isento:   { label: "Isento",   cor: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
+};
+
+function PgBadge({ status, valor }: { status: string; valor: number | null }) {
+  const pg = PG_CFG[status] ?? PG_CFG.pendente;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 999, fontSize: 9, fontWeight: 700, color: pg.cor, background: pg.bg, flexShrink: 0, whiteSpace: "nowrap" }}>
+      {pg.label}{valor != null ? ` · R$${Number(valor).toFixed(0)}` : ""}
+    </span>
+  );
+}
+
 type FormData = {
   nome: string; email: string; whatsapp: string; instagram: string;
   dataCompra: string; variante: VarianteBox;
   statusEntrega: StatusEntrega; nivelEngajamento: NivelEngajamento;
   statusUpsell: StatusUpsell; temAcessoBW: boolean; notas: string;
+  statusPagamento: string; valor: string; formaPagamento: string;
 };
 
 const FORM_VAZIO: FormData = {
@@ -67,6 +87,7 @@ const FORM_VAZIO: FormData = {
   variante: "completo", statusEntrega: "pendente",
   nivelEngajamento: "sem-contato", statusUpsell: "nao-abordada",
   temAcessoBW: false, notas: "",
+  statusPagamento: "pendente", valor: "", formaPagamento: "",
 };
 
 function EngajamentoBarra({ nivel }: { nivel: NivelEngajamento }) {
@@ -85,10 +106,20 @@ function EngajamentoBarra({ nivel }: { nivel: NivelEngajamento }) {
   );
 }
 
+const PRODUTOS_OPCOES = [
+  { key: "seja_incomum", label: "Seja Incomum",      cor: "#C9A84C" },
+  { key: "club_bw",      label: "Club BW",           cor: "#a78bfa" },
+  { key: "box_livro",    label: "Box do Livro",       cor: "#86efac" },
+  { key: "evento",       label: "Simplesmente Seja",  cor: "#fb923c" },
+] as const;
+
+type AvisoAcesso = { nome: string; email: string; conviteEnviado: boolean; mensagem: string; linkAcesso?: string; slug?: string };
+
 export default function BoxLivroCompradoras() {
   const [compradoras, setCompradoras] = useState<Compradora[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [form, setForm] = useState<FormData>(FORM_VAZIO);
+  const [formProdutos, setFormProdutos] = useState<string[]>(["box_livro"]);
   const [showForm, setShowForm] = useState(false);
   const [detalhe, setDetalhe] = useState<Compradora | null>(null);
   const [editando, setEditando] = useState<Compradora | null>(null);
@@ -96,6 +127,7 @@ export default function BoxLivroCompradoras() {
   const [filtroUpsell, setFiltroUpsell] = useState<StatusUpsell | "todas">("todas");
   const [busca, setBusca] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [avisoAcesso, setAvisoAcesso] = useState<AvisoAcesso | null>(null);
 
   useEffect(() => {
     fetch("/api/box-livro")
@@ -103,17 +135,36 @@ export default function BoxLivroCompradoras() {
       .then(d => { setCompradoras(Array.isArray(d) ? d : []); setCarregando(false); });
   }, []);
 
+  function toggleProduto(key: string) {
+    setFormProdutos(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  }
+
   async function salvarNova() {
     if (!form.nome.trim() || salvando) return;
     setSalvando(true);
     const res = await fetch("/api/box-livro", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, valor: form.valor ? Number(form.valor) : null, formaPagamento: form.formaPagamento || null, produtos: formProdutos }),
     });
     const nova = await res.json();
-    if (nova?.id) setCompradoras(prev => [nova, ...prev]);
+    if (nova?.id) {
+      setCompradoras(prev => [nova, ...prev]);
+      if (form.email) {
+        setAvisoAcesso({
+          nome: form.nome,
+          email: form.email,
+          conviteEnviado: nova._acesso?.conviteEnviado ?? false,
+          mensagem: nova._acesso?.mensagem ?? "",
+          linkAcesso: nova._acesso?.linkAcesso,
+          slug: nova._acesso?.slug,
+        });
+      }
+    }
     setForm(FORM_VAZIO);
+    setFormProdutos(["box_livro"]);
     setShowForm(false);
     setSalvando(false);
   }
@@ -136,6 +187,9 @@ export default function BoxLivroCompradoras() {
         statusUpsell: editando.status_upsell,
         temAcessoBW: editando.tem_acesso_bw,
         notas: editando.notas,
+        statusPagamento: editando.status_pagamento,
+        valor: editando.valor,
+        formaPagamento: editando.forma_pagamento,
       }),
     });
     const at = await res.json();
@@ -311,16 +365,104 @@ export default function BoxLivroCompradoras() {
                 ))}
               </div>
             </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Status do Pagamento</label>
+              <select className="input" value={form.statusPagamento} onChange={e => setForm(p => ({ ...p, statusPagamento: e.target.value }))}>
+                <option value="pendente">Pendente</option>
+                <option value="pago">Pago</option>
+                <option value="parcial">Parcial</option>
+                <option value="isento">Isento</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Forma de Pagamento</label>
+              <select className="input" value={form.formaPagamento} onChange={e => setForm(p => ({ ...p, formaPagamento: e.target.value }))}>
+                <option value="">— selecione —</option>
+                <option value="pix">PIX</option>
+                <option value="cartao_credito">Cartão de Crédito</option>
+                <option value="boleto">Boleto</option>
+                <option value="transferencia">Transferência</option>
+                <option value="cortesia">Cortesia</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Valor (R$)</label>
+              <input type="number" min={0} step={0.01} className="input" value={form.valor} onChange={e => setForm(p => ({ ...p, valor: e.target.value }))} placeholder="0,00" />
+            </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Notas</label>
               <textarea className="input" value={form.notas} onChange={(e) => setForm((p) => ({ ...p, notas: e.target.value }))} placeholder="Observações..." rows={3} style={{ resize: "vertical" }} />
             </div>
+            {form.email && (
+              <div style={{ gridColumn: "1 / -1", padding: "14px 16px", background: "rgba(201,168,76,0.06)", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 10 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>
+                  Acesso ao portal
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(134,239,172,0.1)", border: "1px solid rgba(134,239,172,0.3)", borderRadius: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#86efac", display: "inline-block", flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#86efac" }}>Box do Livro</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: "auto" }}>será ativado</span>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, marginBottom: 0 }}>
+                  Um convite será enviado automaticamente para <strong style={{ color: "var(--text)" }}>{form.email}</strong>
+                </p>
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
             <button className="btn-ghost" onClick={() => { setShowForm(false); setForm(FORM_VAZIO); }}>Cancelar</button>
             <button className="btn-gold" onClick={salvarNova} disabled={!form.nome.trim() || salvando} style={{ fontSize: 13 }}>
-              {salvando ? "Salvando..." : "Salvar Compradora"}
+              {salvando ? "Enviando convite..." : "Salvar e enviar convite"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Aviso de acesso criado */}
+      {avisoAcesso && (
+        <div style={{ marginBottom: 20, padding: "16px 20px", background: "rgba(134,239,172,0.06)", border: "1px solid rgba(134,239,172,0.25)", borderRadius: 12, position: "relative" }}>
+          <button onClick={() => setAvisoAcesso(null)} style={{ position: "absolute", top: 10, right: 12, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 16 }}>×</button>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <span style={{ fontSize: 20 }}>✅</span>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "#86efac", margin: "0 0 4px" }}>
+                {avisoAcesso.nome} cadastrada com sucesso!
+              </p>
+              <p style={{ fontSize: 13, color: "var(--text)", margin: "0 0 10px" }}>
+                {avisoAcesso.conviteEnviado
+                  ? `Convite enviado para ${avisoAcesso.email}.`
+                  : avisoAcesso.mensagem}
+              </p>
+              {avisoAcesso.linkAcesso && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ padding: "10px 14px", background: "rgba(134,239,172,0.08)", border: "1px solid rgba(134,239,172,0.25)", borderRadius: 8, marginBottom: 8 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#86efac", margin: "0 0 6px" }}>🔗 Link exclusivo da aluna:</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <code style={{ flex: 1, fontSize: 11, background: "rgba(0,0,0,0.3)", padding: "5px 10px", borderRadius: 6, color: "var(--text)", wordBreak: "break-all" }}>{avisoAcesso.linkAcesso}</code>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(avisoAcesso.linkAcesso!)}
+                        style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 6, background: "rgba(134,239,172,0.15)", border: "1px solid rgba(134,239,172,0.3)", color: "#86efac", fontSize: 11, cursor: "pointer", fontWeight: 700 }}
+                      >Copiar</button>
+                    </div>
+                  </div>
+                  {avisoAcesso.conviteEnviado ? (
+                    <div style={{ padding: "10px 14px", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 8 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24", margin: "0 0 4px" }}>⚠️ Avise sua aluna:</p>
+                      <p style={{ fontSize: 12, color: "var(--text)", margin: 0, lineHeight: 1.6 }}>
+                        Ela receberá um e-mail da <strong>Supabase</strong> (remetente: <code style={{ background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4 }}>noreply@mail.app.supabase.io</code>) com o link para definir a senha. Você também pode enviar o link acima diretamente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ padding: "10px 14px", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 8 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24", margin: "0 0 4px" }}>ℹ️ Aluna já cadastrada:</p>
+                      <p style={{ fontSize: 12, color: "var(--text)", margin: 0, lineHeight: 1.6 }}>
+                        O e-mail automático não foi reenviado pois ela já possui conta. Copie o link acima e envie direto para ela pelo WhatsApp ou Instagram.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -393,6 +535,9 @@ export default function BoxLivroCompradoras() {
                 <div className="blr-col">
                   <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 6, background: upsellCfg.bg, color: upsellCfg.cor, whiteSpace: "nowrap" }}>{upsellCfg.label}</span>
                 </div>
+                <div className="blr-col">
+                  <PgBadge status={c.status_pagamento} valor={c.valor} />
+                </div>
                 <div style={{ color: "var(--text-muted)", display: "flex", justifyContent: "center" }}>
                   {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </div>
@@ -436,6 +581,30 @@ export default function BoxLivroCompradoras() {
                           <select className="input" value={editando.status_upsell} onChange={(e) => setEditando({ ...editando, status_upsell: e.target.value as StatusUpsell })}>
                             {Object.entries(UPSELL_CONFIG).map(([v, cfg]) => <option key={v} value={v}>{cfg.label}</option>)}
                           </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Status do Pagamento</label>
+                          <select className="input" value={editando.status_pagamento} onChange={e => setEditando({ ...editando, status_pagamento: e.target.value })}>
+                            <option value="pendente">Pendente</option>
+                            <option value="pago">Pago</option>
+                            <option value="parcial">Parcial</option>
+                            <option value="isento">Isento</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Forma de Pagamento</label>
+                          <select className="input" value={editando.forma_pagamento ?? ""} onChange={e => setEditando({ ...editando, forma_pagamento: e.target.value || null })}>
+                            <option value="">— selecione —</option>
+                            <option value="pix">PIX</option>
+                            <option value="cartao_credito">Cartão de Crédito</option>
+                            <option value="boleto">Boleto</option>
+                            <option value="transferencia">Transferência</option>
+                            <option value="cortesia">Cortesia</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Valor (R$)</label>
+                          <input type="number" min={0} step={0.01} className="input" value={editando.valor ?? ""} onChange={e => setEditando({ ...editando, valor: e.target.value ? Number(e.target.value) : null })} placeholder="0,00" />
                         </div>
                         <div style={{ gridColumn: "1 / -1" }}>
                           <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Notas</label>
@@ -493,8 +662,29 @@ export default function BoxLivroCompradoras() {
                           </div>
                         </div>
                       </div>
+                      <div>
+                        <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>Pagamento</p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                          {(() => {
+                            const pgCfg: Record<string, { label: string; cor: string; bg: string }> = {
+                              pago:     { label: "Pago",    cor: "#86efac", bg: "rgba(134,239,172,0.12)" },
+                              parcial:  { label: "Parcial", cor: "#fbbf24", bg: "rgba(251,191,36,0.12)"  },
+                              pendente: { label: "Pendente",cor: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+                              isento:   { label: "Isento",  cor: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
+                            };
+                            const pg = pgCfg[c.status_pagamento] ?? pgCfg.pendente;
+                            return (
+                              <>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, color: pg.cor, background: pg.bg }}>{pg.label}</span>
+                                {c.valor != null && <span style={{ fontSize: 12, color: "var(--text)" }}>R$ {Number(c.valor).toFixed(2).replace(".",",")}</span>}
+                                {c.forma_pagamento && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>· {c.forma_pagamento.replace("_"," ")}</span>}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
                       <div style={{ gridColumn: "1 / -1" }}>
-                        <ProdutosAcesso email={c.email} nome={c.nome} />
+                        <ProdutosAcesso email={c.email} nome={c.nome} defaultProduto="box_livro" />
                       </div>
                       <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", gap: 10, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
                         <button className="btn-ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); setEditando({ ...c }); }}><Pencil size={12} /> Editar dados</button>

@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("mentoradas")
-    .select("id, nome, email, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento, convite_enviado, criado_em")
+    .select("id, nome, email, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento, convite_enviado, slug, criado_em")
     .eq("email", email.trim().toLowerCase())
     .maybeSingle();
 
@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest) {
     .from("mentoradas")
     .update(campos)
     .eq("email", email.trim().toLowerCase())
-    .select("id, nome, email, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento, convite_enviado")
+    .select("id, nome, email, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento, convite_enviado, slug")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -350,7 +350,7 @@ export default function EventoCompradores() {
                           </div>
                         </div>
                         <div style={{ gridColumn: "1 / -1" }}>
-                          <ProdutosAcesso email={c.email} nome={c.nome} />
+                          <ProdutosAcesso email={c.email} nome={c.nome} defaultProduto="evento" />
                         </div>
                         <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
                           <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setEditando({ ...c })}><Pencil size={12} /> Editar</button>

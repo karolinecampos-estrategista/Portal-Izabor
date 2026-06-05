@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { Crown, BookOpen, Flame, Heart, Lock, Unlock, Copy, Check, RefreshCw } from "lucide-react";
 
-const PORTAL_URL = "https://projeto-iza-nine.vercel.app/acesso";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://projeto-iza-nine.vercel.app";
 
 const PRODUTOS = [
   {
     key: "acesso_seja_incomum",
     produto: "seja_incomum",
     nome: "Seja Incomum",
-    descricao: "Mentoria Individual",
+    descricao: "Mentoria",
     icon: Crown,
     cor: "#C9A84C",
   },
@@ -49,14 +49,16 @@ interface AcessoData {
   acesso_box_livro: boolean;
   acesso_evento: boolean;
   convite_enviado: boolean;
+  slug?: string | null;
 }
 
 interface Props {
   email: string | null | undefined;
   nome: string;
+  defaultProduto?: "seja_incomum" | "club_bw" | "box_livro" | "evento";
 }
 
-export default function ProdutosAcesso({ email, nome }: Props) {
+export default function ProdutosAcesso({ email, nome, defaultProduto = "seja_incomum" }: Props) {
   const [acesso, setAcesso] = useState<AcessoData | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [copiado, setCopiado] = useState(false);
@@ -97,7 +99,7 @@ export default function ProdutosAcesso({ email, nome }: Props) {
     setEnviandoConvite(true);
     const produtosAtivos = PRODUTOS
       .filter(p => acesso?.[p.key])
-      .map(p => p.produto)[0] ?? "seja_incomum";
+      .map(p => p.produto)[0] ?? defaultProduto;
 
     const res = await fetch("/api/acesso-extraordinaria", {
       method: "POST",
@@ -105,16 +107,23 @@ export default function ProdutosAcesso({ email, nome }: Props) {
       body: JSON.stringify({ email, nome, produto: produtosAtivos }),
     });
     const d = await res.json();
-    setMensagem({ texto: d.mensagem ?? (d.error ?? "Convite enviado!"), tipo: d.ok !== false ? "ok" : "erro" });
+    const msg = d.linkAcesso
+      ? `${d.mensagem ?? "Acesso gerado!"} — Link copiado abaixo.`
+      : (d.mensagem ?? d.error ?? "Convite enviado!");
+    setMensagem({ texto: msg, tipo: d.ok !== false ? "ok" : "erro" });
     setEnviandoConvite(false);
 
-    // Recarrega acesso
+    // Recarrega acesso para atualizar slug/link
     fetch(`/api/acesso-extraordinaria?email=${encodeURIComponent(email)}`)
       .then(r => r.json()).then(d => setAcesso(d));
   }
 
+  const linkPortal = acesso?.slug
+    ? `${SITE_URL}/portal/${acesso.slug}`
+    : `${SITE_URL}/acesso`;
+
   function copiarLink() {
-    navigator.clipboard.writeText(PORTAL_URL).then(() => {
+    navigator.clipboard.writeText(linkPortal).then(() => {
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2000);
     });
@@ -210,14 +219,14 @@ export default function ProdutosAcesso({ email, nome }: Props) {
             border: "1px solid var(--border)",
           }}>
             <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 6px", fontWeight: 600 }}>
-              Link de acesso ao portal
+              {acesso?.slug ? `Link exclusivo da aluna (/portal/${acesso.slug})` : "Link de acesso ao portal"}
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <code style={{
-                fontSize: 11, color: "#C9A84C", flex: 1,
+                fontSize: 11, color: acesso?.slug ? "#86efac" : "#C9A84C", flex: 1,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
-                {PORTAL_URL}
+                {linkPortal}
               </code>
               <button
                 onClick={copiarLink}

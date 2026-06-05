@@ -6,22 +6,41 @@ export async function GET() {
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
 
   const { data: perfis } = await supabaseAdmin.from("perfis").select("id, nome, tipo");
-  const { data: mentoradas } = await supabaseAdmin.from("mentoradas").select("user_id, acesso, produtos_ativos, mostrar_financeiro");
+  // Busca mentoradas com todos os campos de acesso (legado user_id e novo id)
+  const { data: mentoradas } = await supabaseAdmin
+    .from("mentoradas")
+    .select("id, user_id, acesso, produtos_ativos, mostrar_financeiro, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento");
 
   const perfisMap = new Map((perfis ?? []).map((p: Record<string, unknown>) => [p.id as string, p]));
-  const mentoradasMap = new Map((mentoradas ?? []).map((m: Record<string, unknown>) => [m.user_id as string, m]));
+
+  // Suporta legado (user_id) e novo sistema (id como PK = auth user id)
+  const mentoradasMap = new Map<string, Record<string, unknown>>();
+  (mentoradas ?? []).forEach((m: Record<string, unknown>) => {
+    if (m.id)      mentoradasMap.set(m.id as string, m);
+    if (m.user_id && m.user_id !== m.id) mentoradasMap.set(m.user_id as string, m);
+  });
 
   const users = authData.users
     .map((u) => {
       const perfil = perfisMap.get(u.id) ?? {};
-      const mentorada = mentoradasMap.get(u.id) ?? {};
+      const m = mentoradasMap.get(u.id) ?? {};
+
+      // Mescla produtos_ativos (legado JSON) com colunas booleanas (novo sistema)
+      const produtosAtivos = {
+        ...(m.produtos_ativos as Record<string, boolean> ?? {}),
+        ...(m.acesso_seja_incomum ? { seja_incomum: true } : {}),
+        ...(m.acesso_club_bw      ? { club_bw: true }      : {}),
+        ...(m.acesso_box_livro    ? { box_livro: true }    : {}),
+        ...(m.acesso_evento       ? { evento: true }       : {}),
+      };
+
       return {
         id: u.id,
         email: u.email ?? "",
-        nome: (perfil as Record<string, unknown>).nome ?? u.user_metadata?.full_name ?? null,
+        nome: (perfil as Record<string, unknown>).nome ?? u.user_metadata?.nome ?? u.user_metadata?.full_name ?? null,
         tipo: (perfil as Record<string, unknown>).tipo ?? "mentorada",
-        acesso: (mentorada as Record<string, unknown>).acesso ?? null,
-        produtos_ativos: (mentorada as Record<string, unknown>).produtos_ativos ?? {},
+        acesso: m.acesso ?? null,
+        produtos_ativos: produtosAtivos,
         bloqueado: !!u.banned_until,
         ultimo_acesso: u.last_sign_in_at ?? null,
         criado_em: u.created_at,
@@ -51,10 +70,11 @@ export async function PATCH(req: NextRequest) {
     if (acesso !== undefined) update.acesso = acesso;
     if (produtosAtivos !== undefined) update.produtos_ativos = produtosAtivos;
 
+    // Tenta pelo id (novo sistema), cai no user_id (legado) se não encontrar
     const { error } = await supabaseAdmin
       .from("mentoradas")
       .update(update)
-      .eq("user_id", id);
+      .or(`id.eq.${id},user_id.eq.${id}`);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }

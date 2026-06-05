@@ -14,6 +14,9 @@ import {
   Star,
   Heart,
   Clock,
+  Video,
+  ClipboardList,
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -29,7 +32,10 @@ type Devocional = {
 type Sessao = {
   id: string;
   data: string;
+  horario: string | null;
   duracao: string;
+  link_meet: string | null;
+  status: string;
 };
 
 export default function HomeMentorada() {
@@ -37,6 +43,7 @@ export default function HomeMentorada() {
   const [programa, setPrograma] = useState("");
   const [devocional, setDevocional] = useState<Devocional | null>(null);
   const [proximasSessoes, setProximasSessoes] = useState<Sessao[]>([]);
+  const [produtosAtivos, setProdutosAtivos] = useState<Record<string, boolean>>({});
 
   const hoje = new Date();
   const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -47,16 +54,25 @@ export default function HomeMentorada() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return;
 
-      // Busca dados da mentorada logada
+      // Busca dados da mentorada logada (suporta id direto e user_id legado)
       const { data: mentoranda } = await supabase
         .from("mentoradas")
         .select("nome, programa")
-        .eq("user_id", session.user.id)
-        .single();
+        .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
+        .maybeSingle();
 
       if (mentoranda) {
         setNomeMentorada(mentoranda.nome.split(" ")[0]);
         setPrograma(mentoranda.programa ?? "");
+      }
+
+      // Busca produtos ativos para filtrar acesso rápido
+      const res = await fetch("/api/perfil", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const p = await res.json();
+        setProdutosAtivos(p.produtosAtivos ?? {});
       }
     });
 
@@ -70,17 +86,20 @@ export default function HomeMentorada() {
         }
       });
 
-    // Busca próximas sessões agendadas
-    fetch("/api/sessoes")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          const agendadas = data
-            .filter((s: { status: string; data: string }) => s.status === "agendada" && s.data >= hoje.toISOString().split("T")[0])
-            .slice(0, 3);
-          setProximasSessoes(agendadas);
-        }
-      });
+    // Busca próximas sessões agendadas da mentorada logada
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      const { data: ment } = await supabase.from("mentoradas").select("id").or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`).single();
+      const url = ment ? `/api/sessoes?mentorada_id=${ment.id}` : "/api/sessoes";
+      const r = await fetch(url);
+      const data = await r.json();
+      if (Array.isArray(data)) {
+        const agendadas = data
+          .filter((s: { status: string; data: string }) => s.status === "agendada" && s.data >= hoje.toISOString().split("T")[0])
+          .slice(0, 3);
+        setProximasSessoes(agendadas);
+      }
+    });
   }, []);
 
   // Desafios — conectar à API quando Fase 1.2 estiver pronta
@@ -153,9 +172,11 @@ export default function HomeMentorada() {
                 &ldquo;{devocional.conteudo.slice(0, 280)}{devocional.conteudo.length > 280 ? "..." : ""}&rdquo;
               </p>
             )}
-            <Link href="/mentorada/devocional" style={{ fontSize: 11, color: "var(--gold)", textDecoration: "none", fontWeight: 600 }}>
-              Ler devocional completo →
-            </Link>
+            {produtosAtivos.seja_incomum && (
+              <Link href="/mentorada/devocional" style={{ fontSize: 11, color: "var(--gold)", textDecoration: "none", fontWeight: 600 }}>
+                Ler devocional completo →
+              </Link>
+            )}
           </>
         ) : (
           <p style={{ fontSize: 13, color: "var(--text-muted)", fontStyle: "italic" }}>
@@ -216,11 +237,18 @@ export default function HomeMentorada() {
           </Link>
         </div>
 
-        {/* Próximos encontros */}
+        {/* Próximas Sessões */}
         <div className="card" style={{ padding: "18px 20px" }}>
-          <div className="flex items-center gap-2" style={{ marginBottom: 16 }}>
-            <CalendarDays size={14} style={{ color: "var(--gold)" }} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Próximas Sessões</span>
+          <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+            <div className="flex items-center gap-2">
+              <CalendarDays size={14} style={{ color: "var(--gold)" }} />
+              <span style={{ fontSize: 13, fontWeight: 600 }}>Próximas Sessões</span>
+            </div>
+            {produtosAtivos.club_bw && (
+              <Link href="/mentorada/minhas-sessoes" style={{ fontSize: 11, color: "var(--text-muted)", textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}>
+                Ver todas <ChevronRight size={11} />
+              </Link>
+            )}
           </div>
           {proximasSessoes.length === 0 ? (
             <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
@@ -231,29 +259,27 @@ export default function HomeMentorada() {
               {proximasSessoes.map((s) => {
                 const { dia, mes } = formatarDataSessao(s.data);
                 return (
-                  <div
-                    key={s.id}
-                    style={{
-                      padding: "12px 14px",
-                      background: "var(--bg-input)",
-                      borderRadius: 10,
-                      border: "1px solid var(--border)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                    }}
-                  >
-                    <div style={{ minWidth: 40, textAlign: "center", background: "rgba(201,168,76,0.12)", borderRadius: 8, padding: "6px 0" }}>
-                      <p style={{ fontSize: 16, fontWeight: 700, color: "var(--gold)", margin: 0, lineHeight: 1 }}>{dia}</p>
-                      <p style={{ fontSize: 9, color: "var(--gold)", margin: 0, fontWeight: 600 }}>{mes}</p>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500, margin: 0 }}>Mentoria com Izabor</p>
-                      <div className="flex items-center gap-1" style={{ marginTop: 2 }}>
-                        <Clock size={10} style={{ color: "var(--text-muted)" }} />
-                        <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>{s.duracao}</p>
+                  <div key={s.id} style={{ padding: "12px 14px", background: "var(--bg-input)", borderRadius: 10, border: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ minWidth: 40, textAlign: "center", background: "rgba(201,168,76,0.12)", borderRadius: 8, padding: "6px 0", flexShrink: 0 }}>
+                        <p style={{ fontSize: 16, fontWeight: 700, color: "var(--gold)", margin: 0, lineHeight: 1 }}>{dia}</p>
+                        <p style={{ fontSize: 9, color: "var(--gold)", margin: 0, fontWeight: 600 }}>{mes}</p>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, margin: 0 }}>Call com Izabor</p>
+                        <div className="flex items-center gap-1" style={{ marginTop: 2 }}>
+                          <Clock size={10} style={{ color: "var(--text-muted)" }} />
+                          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>{s.horario ? `${s.horario} · ` : ""}{s.duracao}</p>
+                        </div>
                       </div>
                     </div>
+                    {s.link_meet && (
+                      <a href={s.link_meet} target="_blank" rel="noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, padding: "7px 14px", borderRadius: 8, background: "#93c5fd", color: "#000", fontSize: 12, fontWeight: 700, textDecoration: "none" }}
+                      >
+                        <Video size={12} /> Entrar na Call
+                      </a>
+                    )}
                   </div>
                 );
               })}
@@ -270,13 +296,17 @@ export default function HomeMentorada() {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
           {[
-            { href: "/mentorada/aulas", icon: PlaySquare, label: "Aulas", color: "#a78bfa", bg: "rgba(139,92,246,0.1)" },
-            { href: "/mentorada/jornada", icon: Trophy, label: "Jornada", color: "#C9A84C", bg: "rgba(201,168,76,0.1)" },
-            { href: "/mentorada/depoimentos", icon: Heart, label: "Depoimentos", color: "#f9a8d4", bg: "rgba(236,72,153,0.1)" },
-            { href: "/mentorada/financeiro", icon: TrendingUp, label: "Financeiro", color: "#86efac", bg: "rgba(34,197,94,0.1)" },
-            { href: "/mentorada/meu-inicio", icon: Crown, label: "Meu Começo", color: "#93c5fd", bg: "rgba(59,130,246,0.1)" },
-            { href: "/mentorada/chat", icon: Flame, label: "Chat", color: "#fca5a5", bg: "rgba(239,68,68,0.1)" },
-          ].map((item) => (
+            { href: "/mentorada/aulas",        icon: PlaySquare,    label: "Aulas",          color: "#a78bfa", bg: "rgba(139,92,246,0.1)",  produto: "seja_incomum" },
+            { href: "/mentorada/jornada",      icon: Trophy,        label: "Jornada",        color: "#C9A84C", bg: "rgba(201,168,76,0.1)",  produto: "seja_incomum" },
+            { href: "/mentorada/minhas-sessoes",icon: ClipboardList,label: "Sessões",         color: "#a78bfa", bg: "rgba(167,139,250,0.1)", produto: "club_bw" },
+            { href: "/mentorada/checkin",      icon: Activity,      label: "Check-in",       color: "#a78bfa", bg: "rgba(167,139,250,0.1)", produto: "club_bw" },
+            { href: "/mentorada/depoimentos",  icon: Heart,         label: "Depoimentos",    color: "#f9a8d4", bg: "rgba(236,72,153,0.1)",  produto: "club_bw" },
+            { href: "/mentorada/chat",         icon: Flame,         label: "Chat",           color: "#fca5a5", bg: "rgba(239,68,68,0.1)",   produto: "club_bw" },
+            { href: "/mentorada/box-livro",    icon: Video,         label: "Box do Livro",   color: "#86efac", bg: "rgba(34,197,94,0.1)",   produto: "box_livro" },
+            { href: "/mentorada/financeiro",   icon: TrendingUp,    label: "Pagamentos",     color: "#93c5fd", bg: "rgba(59,130,246,0.1)",  produto: null },
+            { href: "/mentorada/produtos",     icon: Crown,         label: "Programas",      color: "#C9A84C", bg: "rgba(201,168,76,0.1)",  produto: null },
+          ].filter(item => item.produto === null || !!produtosAtivos[item.produto])
+          .map((item) => (
             <Link
               key={item.href}
               href={item.href}

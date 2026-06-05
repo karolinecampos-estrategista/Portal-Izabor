@@ -75,8 +75,8 @@ export default function MinhasTarefas() {
         const { data: m } = await supabase
           .from("mentoradas")
           .select("nome")
-          .eq("user_id", session.user.id)
-          .single();
+          .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
+          .maybeSingle();
         if (m) { nome = m.nome; setNomeMentorada(nome); }
       }
 

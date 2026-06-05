@@ -2,95 +2,150 @@ import { supabaseAdmin } from "./supabase-admin";
 
 export type ProdutoAcesso = "seja_incomum" | "club_bw" | "box_livro" | "evento";
 
-const PORTAL_URL =
+export const PORTAL_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://projeto-iza-nine.vercel.app";
 
-/**
- * Cria ou atualiza o acesso da Extraordinária quando ela é cadastrada em
- * qualquer produto. Se o e-mail já existe na tabela mentoradas, apenas
- * atualiza o flag do produto. Se não existe, envia convite via Supabase Auth
- * e cria o registro na tabela mentoradas.
- *
- * Não bloqueia o cadastro do comprador se falhar — é best-effort.
- */
+// Gera slug único baseado no nome (ex: "Ana Silva" → "as", "Andrea Santos" → "ands")
+function normalizarTexto(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+}
+
+export async function gerarSlugUnico(nome: string): Promise<string> {
+  const partes = nome.trim().split(/\s+/).map(normalizarTexto).filter(Boolean);
+  const primeiro = partes[0] ?? "bw";
+  const ultimo   = partes[partes.length - 1] ?? "";
+
+  const candidatos = [
+    partes.map(p => p[0]).join(""),                            // iniciais: "as"
+    primeiro,                                                   // primeiro nome: "ana"
+    primeiro + (ultimo[0] ?? ""),                              // nome + inicial sobrenome: "anas"
+    primeiro + ultimo.slice(0, 2),                             // nome + 2 letras: "anasi"
+    primeiro + ultimo,                                          // nome + sobrenome completo: "anasilva"
+  ].filter(Boolean);
+
+  // Busca slugs já existentes com esses candidatos
+  const { data: existentes } = await supabaseAdmin
+    .from("mentoradas")
+    .select("slug")
+    .in("slug", candidatos);
+
+  const usados = new Set((existentes ?? []).map((r: { slug: string }) => r.slug));
+
+  for (const c of candidatos) {
+    if (!usados.has(c)) return c;
+  }
+
+  // Fallback com número incremental
+  let i = 2;
+  while (true) {
+    const slug = `${primeiro}${i}`;
+    const { data } = await supabaseAdmin.from("mentoradas").select("slug").eq("slug", slug).maybeSingle();
+    if (!data) return slug;
+    i++;
+  }
+}
+
 export async function criarAcessoExtraordinaria(
   email: string | null | undefined,
   nome: string,
-  produto: ProdutoAcesso
-): Promise<{ ok: boolean; mensagem: string }> {
+  produto: ProdutoAcesso | ProdutoAcesso[]
+): Promise<{ ok: boolean; mensagem: string; conviteEnviado: boolean; linkAcesso?: string; slug?: string }> {
   if (!email?.trim()) {
-    return { ok: false, mensagem: "Sem e-mail — acesso não criado." };
+    return { ok: false, mensagem: "Sem e-mail — acesso não criado.", conviteEnviado: false };
   }
 
-  const campo = `acesso_${produto}` as const;
+  const emailNorm = email.trim().toLowerCase();
+  const produtos  = Array.isArray(produto) ? produto : [produto];
+  const flags: Record<string, boolean> = {};
+  produtos.forEach((p) => { flags[`acesso_${p}`] = true; });
 
-  // 1. Verifica se já existe mentorada com esse email
+  // 1. Verifica se já existe mentorada
   const { data: existente } = await supabaseAdmin
     .from("mentoradas")
-    .select("id, nome, convite_enviado")
-    .eq("email", email.trim().toLowerCase())
+    .select("id, nome, convite_enviado, slug")
+    .eq("email", emailNorm)
     .maybeSingle();
 
   if (existente) {
-    // Já existe — só atualiza o flag do produto
-    await supabaseAdmin
-      .from("mentoradas")
-      .update({ [campo]: true })
+    // Atualiza flags de produto
+    const slug = existente.slug ?? await gerarSlugUnico(nome);
+    await supabaseAdmin.from("mentoradas")
+      .update({ ...flags, slug })
       .eq("id", existente.id);
-    return { ok: true, mensagem: `Acesso ${produto} liberado para ${existente.nome}.` };
+
+    // Gera magic link apontando para /acesso (que processa o token e redireciona para definir-senha)
+    const redirectTo = `${PORTAL_URL}/acesso`;
+    const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email: emailNorm,
+      options: { redirectTo },
+    });
+
+    const linkAcesso = (linkData as { properties?: { action_link?: string } })?.properties?.action_link ?? redirectTo;
+
+    return {
+      ok: true,
+      mensagem: `Acessos atualizados para ${existente.nome}. Use o link abaixo para enviar à aluna.`,
+      conviteEnviado: false,
+      linkAcesso,
+      slug,
+    };
   }
 
-  // 2. Não existe — cria via convite Supabase Auth
+  // 2. Usuária nova — gera slug único
+  const slug = await gerarSlugUnico(nome);
+  // redirectTo aponta para /acesso que já processa o token (PKCE ou hash) e redireciona para definir-senha
+  const redirectTo = `${PORTAL_URL}/acesso`;
+
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-    email.trim().toLowerCase(),
-    {
-      data: { nome, tipo: "mentorada" },
-      redirectTo: `${PORTAL_URL}/acesso`,
-    }
+    emailNorm,
+    { data: { nome, tipo: "mentorada" }, redirectTo }
   );
 
   if (authError) {
-    // Usuário já existe no Auth mas não tem mentoradas — tenta buscar pelo perfil
+    // Auth já existe mas não tem mentorada — cria o registro
     const { data: perfil } = await supabaseAdmin
-      .from("perfis")
-      .select("id")
-      .eq("email", email.trim().toLowerCase())
-      .maybeSingle();
+      .from("perfis").select("id").eq("email", emailNorm).maybeSingle();
 
     if (perfil) {
-      // Cria o registro de mentorada linkado ao usuário existente
       await supabaseAdmin.from("mentoradas").upsert({
-        id: perfil.id,
-        nome,
-        email: email.trim().toLowerCase(),
-        [campo]: true,
-        convite_enviado: true,
+        id: perfil.id, nome, email: emailNorm, ...flags, convite_enviado: true, slug,
       });
-      return { ok: true, mensagem: `Acesso criado via perfil existente.` };
+      await supabaseAdmin.from("perfis").upsert({ id: perfil.id, tipo: "mentorada", nome, email: emailNorm });
+
+      // Gera magic link real (com token) para o admin copiar e enviar à aluna
+      const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+        type: "magiclink", email: emailNorm, options: { redirectTo },
+      });
+      const linkAcesso = (linkData as { properties?: { action_link?: string } })?.properties?.action_link ?? redirectTo;
+
+      return { ok: true, mensagem: "Acesso criado. Use o link abaixo para enviar à aluna.", conviteEnviado: false, linkAcesso, slug };
     }
 
-    return { ok: false, mensagem: `Erro ao criar acesso: ${authError.message}` };
+    return { ok: false, mensagem: `Erro ao criar acesso: ${authError.message}`, conviteEnviado: false };
   }
 
   const userId = authData?.user?.id;
-  if (!userId) return { ok: false, mensagem: "Usuário criado mas ID não retornado." };
+  if (!userId) return { ok: false, mensagem: "Usuário criado mas ID não retornado.", conviteEnviado: false };
 
-  // 3. Cria registro de mentorada com o acesso do produto
   await supabaseAdmin.from("mentoradas").upsert({
-    id: userId,
-    nome,
-    email: email.trim().toLowerCase(),
-    [campo]: true,
-    convite_enviado: true,
+    id: userId, nome, email: emailNorm, ...flags, convite_enviado: true, slug,
   });
-
-  // 4. Garante perfil como mentorada
   await supabaseAdmin.from("perfis").upsert({
-    id: userId,
-    tipo: "mentorada",
-    nome,
-    email: email.trim().toLowerCase(),
+    id: userId, tipo: "mentorada", nome, email: emailNorm,
   });
 
-  return { ok: true, mensagem: `Convite enviado para ${email} com acesso ${produto}.` };
+  // Gera magic link real (com token) para o admin copiar — o email de convite já foi enviado
+  const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+    type: "magiclink", email: emailNorm, options: { redirectTo },
+  });
+  const linkAcesso = (linkData as { properties?: { action_link?: string } })?.properties?.action_link ?? redirectTo;
+
+  return {
+    ok: true,
+    mensagem: `Convite enviado para ${email}.`,
+    conviteEnviado: true,
+    linkAcesso,  // Agora é o link real com token, não só a URL do portal
+    slug,
+  };
 }

@@ -11,7 +11,7 @@ const PRODUTOS = [
     tipo: "Programa de Mentoria",
     emoji: "👑",
     cor: "#C9A84C",
-    descricao: "Mentoria individual intensiva para mulheres que querem viver o extraordinário. Transformação profunda em identidade, fé e liderança.",
+    descricao: "Mentoria intensiva para mulheres que querem viver o extraordinário. Transformação profunda em identidade, fé e liderança.",
     link: "https://izaborcruz.com.br/sejaincomum/",
     status: "ativo",
     badge: "Ativo",
