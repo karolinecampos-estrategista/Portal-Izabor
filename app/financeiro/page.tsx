@@ -1,400 +1,316 @@
 "use client";
 
-import { useState } from "react";
-import { TrendingUp, CheckCircle2, Clock, AlertCircle, CreditCard, DollarSign, Plus, X, ArrowDownLeft, ArrowUpRight, RotateCcw, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  TrendingUp, DollarSign, CreditCard, Users, Loader2,
+  Plus, X, Trash2, ArrowDownLeft, ArrowUpRight, SlidersHorizontal,
+} from "lucide-react";
 
-type StatusPag = "em-dia" | "atrasado" | "concluido";
-type TipoLancamento = "pagamento" | "parcela" | "reembolso" | "ajuste";
-
-interface ContratoAluna {
-  id: number;
-  nome: string;
-  programa: string;
-  valorTotal: number;
-  valorPago: number;
-  parcelas: number;
-  parcelasPagas: number;
-  proximoVencimento: string;
-  status: StatusPag;
-  formaPagamento: string;
-  cor: string;
-}
+type TipoLanc = "entrada" | "saida";
+type Categoria = "seja_incomum" | "livro" | "club_bw" | "evento" | "outro";
 
 interface Lancamento {
-  id: number;
-  mentorandaNome: string;
-  tipo: TipoLancamento;
+  id: string;
+  tipo: TipoLanc;
   valor: number;
-  data: string;
   descricao: string;
+  data: string;
+  categoria: Categoria;
+  observacoes: string | null;
 }
 
-const CONTRATOS: ContratoAluna[] = [
-  { id: 1, nome: "Ana Paula Ferreira", programa: "Imersao BW",          valorTotal: 5000, valorPago: 2502, parcelas: 6,  parcelasPagas: 3, proximoVencimento: "01 Jun 2026", status: "em-dia",   formaPagamento: "Cartão",   cor: "#C9A84C" },
-  { id: 2, nome: "Camila Souza",       programa: "Mentoria Individual", valorTotal: 3500, valorPago: 1750, parcelas: 4,  parcelasPagas: 2, proximoVencimento: "15 Jun 2026", status: "em-dia",   formaPagamento: "Parcelado", cor: "#a78bfa" },
-  { id: 3, nome: "Fernanda Lima",      programa: "Club BW",             valorTotal: 1200, valorPago: 900,  parcelas: 12, parcelasPagas: 9, proximoVencimento: "01 Jun 2026", status: "em-dia",   formaPagamento: "Cartão",   cor: "#86efac" },
-  { id: 4, nome: "Juliana Matos",      programa: "Mentoria Individual", valorTotal: 3000, valorPago: 1000, parcelas: 3,  parcelasPagas: 1, proximoVencimento: "10 Mai 2026", status: "atrasado", formaPagamento: "Boleto",   cor: "#93c5fd" },
-  { id: 5, nome: "Renata Costa",       programa: "Imersao BW",          valorTotal: 4500, valorPago: 4500, parcelas: 5,  parcelasPagas: 5, proximoVencimento: "",            status: "concluido",formaPagamento: "Cartão",   cor: "#f9a8d4" },
-  { id: 6, nome: "Patricia Alves",     programa: "Club BW",             valorTotal: 1200, valorPago: 500,  parcelas: 12, parcelasPagas: 5, proximoVencimento: "01 Jun 2026", status: "em-dia",   formaPagamento: "Hotmart",  cor: "#fca5a5" },
-];
-
-const LANCAMENTOS_INICIAL: Lancamento[] = [
-  { id: 1, mentorandaNome: "Ana Paula Ferreira", tipo: "parcela",   valor: 834,  data: "2026-05-01", descricao: "3ª parcela — Imersao BW" },
-  { id: 2, mentorandaNome: "Camila Souza",       tipo: "parcela",   valor: 875,  data: "2026-05-15", descricao: "2ª parcela — Mentoria Individual" },
-  { id: 3, mentorandaNome: "Juliana Matos",      tipo: "pagamento", valor: 1000, data: "2026-04-10", descricao: "1ª parcela — Mentoria Individual" },
-  { id: 4, mentorandaNome: "Patricia Alves",     tipo: "parcela",   valor: 100,  data: "2026-05-01", descricao: "5ª mensalidade Club BW" },
-  { id: 5, mentorandaNome: "Fernanda Lima",      tipo: "parcela",   valor: 100,  data: "2026-05-01", descricao: "9ª mensalidade Club BW" },
-];
-
-const statusConfig: Record<StatusPag, { label: string; cor: string; bg: string; icone: React.ReactNode }> = {
-  "em-dia":   { label: "Em dia",   cor: "#86efac", bg: "rgba(134,239,172,0.1)", icone: <CheckCircle2 size={12} /> },
-  "atrasado": { label: "Atrasado", cor: "#fca5a5", bg: "rgba(239,68,68,0.1)",   icone: <AlertCircle size={12} /> },
-  "concluido":{ label: "Pago",     cor: "#C9A84C", bg: "rgba(201,168,76,0.1)",  icone: <CheckCircle2 size={12} /> },
-};
-
-const tipoConfig: Record<TipoLancamento, { label: string; cor: string; bg: string; icone: React.ReactNode; sinal: "+" | "-" }> = {
-  pagamento: { label: "Pagamento",  cor: "#86efac", bg: "rgba(134,239,172,0.1)", icone: <ArrowDownLeft size={12} />,  sinal: "+" },
-  parcela:   { label: "Parcela",    cor: "#86efac", bg: "rgba(134,239,172,0.1)", icone: <ArrowDownLeft size={12} />,  sinal: "+" },
-  reembolso: { label: "Reembolso",  cor: "#fca5a5", bg: "rgba(239,68,68,0.1)",   icone: <ArrowUpRight size={12} />,   sinal: "-" },
-  ajuste:    { label: "Ajuste",     cor: "#fde047", bg: "rgba(253,224,71,0.1)",   icone: <SlidersHorizontal size={12} />, sinal: "+" },
-};
-
-const MENTORANDAS_NOMES = CONTRATOS.map((c) => c.nome);
-
-function formatarData(iso: string) {
-  if (!iso) return "";
-  const [, m, d] = iso.split("-");
-  const meses = ["","Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-  return `${parseInt(d)} ${meses[parseInt(m)]}`;
+interface Mentoranda {
+  id: string;
+  nome: string;
+  programa: string;
+  cor: string;
+  status: string;
+  valor_negociado: number | null;
+  forma_pagamento: string | null;
+  total_parcelas: number | null;
 }
 
-const FORM_VAZIO = { mentorandaNome: "", tipo: "pagamento" as TipoLancamento, valor: "", data: "", descricao: "" };
+const CATEGORIAS: { value: Categoria; label: string; cor: string }[] = [
+  { value: "seja_incomum", label: "Seja Incomum",  cor: "#C9A84C" },
+  { value: "livro",        label: "Livro",          cor: "#86efac" },
+  { value: "club_bw",      label: "Club BW",        cor: "#a78bfa" },
+  { value: "evento",       label: "Evento",         cor: "#fca5a5" },
+  { value: "outro",        label: "Outro",          cor: "#6b7280" },
+];
 
-export default function Financeiro() {
-  const [lancamentos, setLancamentos] = useState<Lancamento[]>(LANCAMENTOS_INICIAL);
-  const [mostrarForm, setMostrarForm] = useState(false);
+function catLabel(c: Categoria) { return CATEGORIAS.find(x => x.value === c)?.label ?? c; }
+function catCor(c: Categoria)   { return CATEGORIAS.find(x => x.value === c)?.cor ?? "#6b7280"; }
+
+function formatData(iso: string) {
+  const [y, m, d] = iso.split("-");
+  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  return `${d} ${meses[parseInt(m)-1]} ${y}`;
+}
+
+const FORM_VAZIO = { tipo: "entrada" as TipoLanc, valor: "", descricao: "", data: new Date().toISOString().split("T")[0], categoria: "outro" as Categoria, observacoes: "" };
+
+export default function FinanceiroAdmin() {
+  const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [mentoradas, setMentoradas] = useState<Mentoranda[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [formAberto, setFormAberto] = useState(false);
   const [form, setForm] = useState(FORM_VAZIO);
-  const [contratoAberto, setContratoAberto] = useState<number | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | TipoLanc>("todos");
+  const [filtroCategoria, setFiltroCategoria] = useState<Categoria | "todas">("todas");
 
-  const totalRecebido = CONTRATOS.reduce((s, c) => s + c.valorPago, 0);
-  const totalContratado = CONTRATOS.reduce((s, c) => s + c.valorTotal, 0);
-  const totalPendente = totalContratado - totalRecebido;
-  const atrasados = CONTRATOS.filter((c) => c.status === "atrasado").length;
-  const totalLancamentos = lancamentos.filter((l) => l.tipo !== "reembolso").reduce((s, l) => s + l.valor, 0);
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/financeiro").then(r => r.json()),
+      fetch("/api/mentoradas").then(r => r.json()),
+    ]).then(([lanc, ment]) => {
+      setLancamentos(Array.isArray(lanc) ? lanc : []);
+      setMentoradas(Array.isArray(ment) ? ment : []);
+      setCarregando(false);
+    });
+  }, []);
 
-  function salvarLancamento() {
-    if (!form.mentorandaNome || !form.valor || !form.data) return;
-    const novo: Lancamento = {
-      id: Date.now(),
-      mentorandaNome: form.mentorandaNome,
-      tipo: form.tipo,
-      valor: Number(form.valor),
-      data: form.data,
-      descricao: form.descricao,
-    };
-    setLancamentos((prev) => [novo, ...prev].sort((a, b) => b.data.localeCompare(a.data)));
+  async function adicionar() {
+    if (!form.descricao.trim() || !form.valor) return;
+    setSalvando(true);
+    const res = await fetch("/api/financeiro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, valor: parseFloat(String(form.valor).replace(",", ".")) }),
+    });
+    const novo = await res.json();
+    if (novo?.id) setLancamentos(prev => [novo, ...prev]);
     setForm(FORM_VAZIO);
-    setMostrarForm(false);
+    setFormAberto(false);
+    setSalvando(false);
   }
 
-  const lancamentosOrdenados = [...lancamentos].sort((a, b) => b.data.localeCompare(a.data));
-  const contratoMap = Object.fromEntries(CONTRATOS.map((c) => [c.nome, c]));
+  async function excluir(id: string) {
+    if (!confirm("Excluir este lançamento?")) return;
+    await fetch(`/api/financeiro?id=${id}`, { method: "DELETE" });
+    setLancamentos(prev => prev.filter(l => l.id !== id));
+  }
+
+  const filtrados = lancamentos.filter(l => {
+    if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
+    if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
+    return true;
+  });
+
+  const totalEntradas = lancamentos.filter(l => l.tipo === "entrada").reduce((s, l) => s + l.valor, 0);
+  const totalSaidas   = lancamentos.filter(l => l.tipo === "saida").reduce((s, l) => s + l.valor, 0);
+  const saldo         = totalEntradas - totalSaidas;
+
+  // Receita estimada de contratos das alunas
+  const receitaContratos = mentoradas.reduce((s, m) => s + (m.valor_negociado ?? 0), 0);
+
+  if (carregando) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, gap: 10, color: "var(--text-muted)" }}>
+        <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
+        <span style={{ fontSize: 14 }}>Carregando financeiro...</span>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", paddingBottom: 48 }}>
+    <div style={{ maxWidth: 960, margin: "0 auto" }}>
 
       {/* Header */}
-      <div className="flex items-start justify-between" style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
         <div>
           <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
             <TrendingUp size={16} style={{ color: "var(--gold)" }} />
             <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Financeiro</span>
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Financeiro das Mentorias</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Contratos, pagamentos e lançamentos manuais.</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Visão Financeira</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Lançamentos de entradas e saídas do negócio.</p>
         </div>
-        <button className="btn-gold flex items-center gap-2" onClick={() => setMostrarForm(!mostrarForm)}>
+        <button className="btn-gold flex items-center gap-2" onClick={() => setFormAberto(true)}>
           <Plus size={14} /> Novo Lançamento
         </button>
       </div>
 
-      {/* Cards de resumo */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 12, marginBottom: 24 }}>
-        <div className="card glow-gold" style={{ padding: "16px 18px", background: "linear-gradient(135deg,#111 0%,#161208 100%)", border: "1px solid var(--gold-border)" }}>
-          <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-            <DollarSign size={13} style={{ color: "var(--gold)" }} />
-            <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, textTransform: "uppercase" }}>Recebido</span>
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 24 }}>
+        {[
+          { label: "Saldo",              value: saldo,            cor: saldo >= 0 ? "#86efac" : "#fca5a5", Icon: TrendingUp },
+          { label: "Total Entradas",     value: totalEntradas,    cor: "#86efac",  Icon: ArrowDownLeft },
+          { label: "Total Saídas",       value: totalSaidas,      cor: "#fca5a5",  Icon: ArrowUpRight },
+          { label: "Receita Contratos",  value: receitaContratos, cor: "var(--gold)", Icon: Users },
+        ].map(s => (
+          <div key={s.label} className="card" style={{ padding: "16px 18px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <s.Icon size={14} style={{ color: s.cor }} />
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{s.label}</span>
+            </div>
+            <p style={{ fontSize: 20, fontWeight: 800, color: s.cor, margin: 0 }}>
+              R$ {s.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
           </div>
-          <p style={{ fontSize: 22, fontWeight: 800, color: "var(--gold)", margin: 0 }}>
-            R$ {totalRecebido.toLocaleString("pt-BR")}
-          </p>
-          <div className="progress-bar" style={{ marginTop: 8, height: 4 }}>
-            <div className="progress-fill" style={{ width: `${(totalRecebido / totalContratado) * 100}%` }} />
-          </div>
+        ))}
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 4 }}>
+          {(["todos", "entrada", "saida"] as const).map(f => (
+            <button key={f} onClick={() => setFiltroTipo(f)} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 6, cursor: "pointer", border: `1px solid ${filtroTipo === f ? "var(--gold-border)" : "var(--border)"}`, background: filtroTipo === f ? "var(--gold-light)" : "transparent", color: filtroTipo === f ? "var(--gold)" : "var(--text-muted)", fontWeight: filtroTipo === f ? 700 : 400 }}>
+              {f === "todos" ? "Todos" : f === "entrada" ? "Entradas" : "Saídas"}
+            </button>
+          ))}
         </div>
-        <div className="card" style={{ padding: "16px 18px" }}>
-          <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-            <Clock size={13} style={{ color: "#fde047" }} />
-            <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>A Receber</span>
-          </div>
-          <p style={{ fontSize: 22, fontWeight: 800, color: "#fde047", margin: 0 }}>
-            R$ {totalPendente.toLocaleString("pt-BR")}
-          </p>
-        </div>
-        <div className="card" style={{ padding: "16px 18px" }}>
-          <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-            <TrendingUp size={13} style={{ color: "#86efac" }} />
-            <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>Total Contratos</span>
-          </div>
-          <p style={{ fontSize: 22, fontWeight: 800, color: "#86efac", margin: 0 }}>
-            R$ {totalContratado.toLocaleString("pt-BR")}
-          </p>
-        </div>
-        <div className="card" style={{ padding: "16px 18px" }}>
-          <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-            <AlertCircle size={13} style={{ color: "#fca5a5" }} />
-            <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>Atrasadas</span>
-          </div>
-          <p style={{ fontSize: 22, fontWeight: 800, color: atrasados > 0 ? "#fca5a5" : "var(--text-muted)", margin: 0 }}>
-            {atrasados}
-          </p>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <button onClick={() => setFiltroCategoria("todas")} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 6, cursor: "pointer", border: `1px solid ${filtroCategoria === "todas" ? "var(--gold-border)" : "var(--border)"}`, background: filtroCategoria === "todas" ? "var(--gold-light)" : "transparent", color: filtroCategoria === "todas" ? "var(--gold)" : "var(--text-muted)", fontWeight: filtroCategoria === "todas" ? 700 : 400 }}>
+            Todas
+          </button>
+          {CATEGORIAS.map(c => (
+            <button key={c.value} onClick={() => setFiltroCategoria(c.value)} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 6, cursor: "pointer", border: `1px solid ${filtroCategoria === c.value ? c.cor + "80" : "var(--border)"}`, background: filtroCategoria === c.value ? c.cor + "18" : "transparent", color: filtroCategoria === c.value ? c.cor : "var(--text-muted)", fontWeight: filtroCategoria === c.value ? 700 : 400 }}>
+              {c.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ── FORM NOVO LANÇAMENTO ── */}
-      {mostrarForm && (
-        <div className="card" style={{ padding: "20px 22px", marginBottom: 24, border: "1px solid var(--gold-border)", background: "linear-gradient(135deg,#111 0%,#130f04 100%)" }}>
-          <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Registrar Lançamento
-            </p>
-            <button onClick={() => setMostrarForm(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}><X size={16} /></button>
+      {/* Lista de lançamentos */}
+      {filtrados.length === 0 ? (
+        <div className="card" style={{ padding: "48px 20px", textAlign: "center" }}>
+          <SlidersHorizontal size={28} style={{ color: "var(--gold)", opacity: 0.3, marginBottom: 12 }} />
+          <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 6px" }}>Nenhum lançamento ainda</p>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Clique em "Novo Lançamento" para começar.</p>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: "0", overflow: "hidden" }}>
+          {/* Cabeçalho */}
+          <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 120px 130px 80px 36px", gap: 12, padding: "10px 18px", borderBottom: "1px solid var(--border)" }}>
+            {["Data","Descrição","Categoria","Valor","Tipo",""].map(h => (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" }}>{h}</span>
+            ))}
           </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 12 }}>
-            <div>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Mentorada</p>
-              <select value={form.mentorandaNome} onChange={(e) => setForm({ ...form, mentorandaNome: e.target.value })} style={{ padding: "9px 12px", fontSize: 13, width: "100%" }}>
-                <option value="">Selecionar...</option>
-                {MENTORANDAS_NOMES.map((n) => <option key={n}>{n}</option>)}
-              </select>
-            </div>
-            <div>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Tipo</p>
-              <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as TipoLancamento })} style={{ padding: "9px 12px", fontSize: 13, width: "100%" }}>
-                <option value="pagamento">Pagamento recebido</option>
-                <option value="parcela">Parcela recebida</option>
-                <option value="reembolso">Reembolso</option>
-                <option value="ajuste">Ajuste / Desconto</option>
-              </select>
-            </div>
-            <div>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Valor (R$)</p>
-              <input
-                type="number"
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                style={{ padding: "9px 12px", fontSize: 13, width: "100%" }}
-                placeholder="0,00"
-              />
-            </div>
-            <div>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Data</p>
-              <input
-                type="date"
-                value={form.data}
-                onChange={(e) => setForm({ ...form, data: e.target.value })}
-                style={{ padding: "9px 12px", fontSize: 13, width: "100%" }}
-              />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Observação (opcional)</p>
-            <input
-              value={form.descricao}
-              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-              style={{ padding: "9px 12px", fontSize: 13, width: "100%" }}
-              placeholder="Ex: 3ª parcela — cartão final 1234"
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              className="btn-gold flex items-center gap-2"
-              onClick={salvarLancamento}
-              disabled={!form.mentorandaNome || !form.valor || !form.data}
+          {filtrados.map((l, i) => (
+            <div
+              key={l.id}
+              style={{
+                display: "grid", gridTemplateColumns: "80px 1fr 120px 130px 80px 36px", gap: 12,
+                padding: "13px 18px", alignItems: "center",
+                background: i % 2 === 0 ? "var(--bg-card)" : "var(--bg-input)",
+                borderBottom: i < filtrados.length - 1 ? "1px solid var(--border)" : "none",
+              }}
             >
-              <Plus size={13} /> Registrar
-            </button>
-            <button onClick={() => { setMostrarForm(false); setForm(FORM_VAZIO); }} style={{ background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", padding: "8px 16px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-              Cancelar
-            </button>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{formatData(l.data)}</span>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>{l.descricao}</p>
+                {l.observacoes && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>{l.observacoes}</p>}
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: catCor(l.categoria) + "18", color: catCor(l.categoria) }}>
+                {catLabel(l.categoria)}
+              </span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: l.tipo === "entrada" ? "#86efac" : "#fca5a5" }}>
+                {l.tipo === "entrada" ? "+" : "-"} R$ {l.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: l.tipo === "entrada" ? "rgba(134,239,172,0.1)" : "rgba(252,165,165,0.1)", color: l.tipo === "entrada" ? "#86efac" : "#fca5a5" }}>
+                {l.tipo === "entrada" ? <ArrowDownLeft size={10} /> : <ArrowUpRight size={10} />}
+                {l.tipo === "entrada" ? "Entrada" : "Saída"}
+              </span>
+              <button onClick={() => excluir(l.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Contratos das alunas */}
+      {mentoradas.filter(m => (m.valor_negociado ?? 0) > 0).length > 0 && (
+        <div className="card" style={{ padding: "18px 20px", marginTop: 20 }}>
+          <div className="flex items-center gap-2" style={{ marginBottom: 14 }}>
+            <CreditCard size={13} style={{ color: "var(--gold)" }} />
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Contratos Ativos</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {mentoradas.filter(m => (m.valor_negociado ?? 0) > 0).map(m => (
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--bg-input)", borderRadius: 8, border: "1px solid var(--border)" }}>
+                <div className="avatar" style={{ width: 30, height: 30, background: m.cor + "20", color: m.cor, fontSize: 10 }}>
+                  {m.nome.split(" ").map(n => n[0]).join("").slice(0,2)}
+                </div>
+                <span style={{ flex: 1, fontSize: 13 }}>{m.nome}</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{m.programa}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--gold)" }}>
+                  R$ {(m.valor_negociado!).toLocaleString("pt-BR")}
+                </span>
+                {m.forma_pagamento && m.total_parcelas && m.total_parcelas > 1 && (
+                  <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{m.total_parcelas}x</span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* ── CONTRATOS ── */}
-      <div style={{ marginBottom: 20 }}>
-        <div className="flex items-center gap-2" style={{ marginBottom: 12 }}>
-          <CreditCard size={13} style={{ color: "var(--gold)" }} />
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Contratos por Aluna</span>
-          <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 4 }}>{CONTRATOS.length} alunas</span>
-        </div>
+      {/* Modal novo lançamento */}
+      {formAberto && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(0,0,0,0.85)" }} onClick={() => setFormAberto(false)}>
+          <div className="card" style={{ maxWidth: 480, width: "100%", padding: 24 }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Novo Lançamento</h2>
+              <button onClick={() => setFormAberto(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}><X size={18} /></button>
+            </div>
 
-        <div className="flex flex-col gap-2">
-          {CONTRATOS.map((c) => {
-            const cfg = statusConfig[c.status];
-            const pct = Math.round((c.parcelasPagas / c.parcelas) * 100);
-            const aberta = contratoAberto === c.id;
-            return (
-              <div
-                key={c.id}
-                className="card"
-                style={{
-                  overflow: "hidden",
-                  border: c.status === "atrasado" ? "1px solid rgba(239,68,68,0.25)" : "1px solid var(--border)",
-                }}
-              >
-                {/* Linha clicável */}
-                <div
-                  className="flex items-center gap-3"
-                  style={{ padding: "13px 16px", cursor: "pointer", background: c.status === "atrasado" ? "rgba(239,68,68,0.03)" : "transparent" }}
-                  onClick={() => setContratoAberto(aberta ? null : c.id)}
-                >
-                  {/* Avatar */}
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: c.cor + "20", color: c.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                    {c.nome.split(" ").map((n) => n[0]).join("").slice(0,2)}
-                  </div>
-                  {/* Nome + programa */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</p>
-                    <span style={{ fontSize: 11, color: c.cor, fontWeight: 500 }}>{c.programa}</span>
-                  </div>
-                  {/* Mini progress */}
-                  <div style={{ minWidth: 80, display: "flex", flexDirection: "column", gap: 3 }}>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)", textAlign: "right" }}>{c.parcelasPagas}/{c.parcelas} · {pct}%</span>
-                    <div className="progress-bar" style={{ height: 5 }}>
-                      <div className="progress-fill" style={{ width: `${pct}%`, background: c.cor }} />
-                    </div>
-                  </div>
-                  {/* Status */}
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: cfg.cor, background: cfg.bg, border: `1px solid ${cfg.cor}30`, flexShrink: 0 }}>
-                    {cfg.icone} {cfg.label}
-                  </span>
-                  {/* Chevron */}
-                  <div style={{ color: "var(--text-muted)", flexShrink: 0 }}>
-                    {aberta ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  </div>
-                </div>
-
-                {/* Detalhes expandidos */}
-                {aberta && (
-                  <div style={{ borderTop: "1px solid var(--border)", padding: "16px 18px", background: "var(--bg-input)" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 14 }}>
-                      <div>
-                        <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", fontWeight: 600 }}>Pago</p>
-                        <p style={{ fontSize: 15, fontWeight: 700, color: "#86efac", margin: 0 }}>R$ {c.valorPago.toLocaleString("pt-BR")}</p>
-                        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>de R$ {c.valorTotal.toLocaleString("pt-BR")}</p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", fontWeight: 600 }}>Parcelas</p>
-                        <p style={{ fontSize: 15, fontWeight: 700, margin: 0, color: c.cor }}>{c.parcelasPagas} de {c.parcelas}</p>
-                        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>{pct}% quitado</p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", fontWeight: 600 }}>Forma</p>
-                        <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>{c.formaPagamento}</p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", fontWeight: 600 }}>Próx. Vencimento</p>
-                        <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: c.status === "atrasado" ? "#fca5a5" : "var(--text)" }}>
-                          {c.proximoVencimento || "—"}
-                        </p>
-                        {c.status === "atrasado" && (
-                          <span style={{ fontSize: 10, color: "#fca5a5" }}>⚠ Em atraso</span>
-                        )}
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", fontWeight: 600 }}>A Receber</p>
-                        <p style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "#fde047" }}>
-                          R$ {(c.valorTotal - c.valorPago).toLocaleString("pt-BR")}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+            <div className="flex flex-col gap-12" style={{ gap: 14 }}>
+              {/* Tipo */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {(["entrada", "saida"] as TipoLanc[]).map(t => (
+                  <button key={t} type="button" onClick={() => setForm({ ...form, tipo: t })} style={{ padding: "10px", borderRadius: 8, cursor: "pointer", border: `1px solid ${form.tipo === t ? (t === "entrada" ? "rgba(134,239,172,0.5)" : "rgba(252,165,165,0.5)") : "var(--border)"}`, background: form.tipo === t ? (t === "entrada" ? "rgba(134,239,172,0.1)" : "rgba(252,165,165,0.1)") : "var(--bg-input)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13, fontWeight: form.tipo === t ? 700 : 400, color: form.tipo === t ? (t === "entrada" ? "#86efac" : "#fca5a5") : "var(--text-muted)" }}>
+                    {t === "entrada" ? <ArrowDownLeft size={14} /> : <ArrowUpRight size={14} />}
+                    {t === "entrada" ? "Entrada" : "Saída"}
+                  </button>
+                ))}
               </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* ── LANÇAMENTOS ── */}
-      <div className="card" style={{ padding: "18px 20px", overflowX: "auto" }}>
-        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-          <div className="flex items-center gap-2">
-            <RotateCcw size={13} style={{ color: "var(--gold)" }} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Lançamentos Registrados</span>
-            <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 4 }}>{lancamentos.length} entradas</span>
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#86efac" }}>
-            Total: R$ {totalLancamentos.toLocaleString("pt-BR")}
-          </span>
-        </div>
+              <div>
+                <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Descrição *</label>
+                <input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Ex: Pagamento Seja Incomum — Ana Paula" style={{ width: "100%", padding: "9px 12px", fontSize: 13 }} />
+              </div>
 
-        {lancamentosOrdenados.length === 0 ? (
-          <div style={{ padding: "24px", textAlign: "center", color: "var(--text-muted)", fontSize: 13, background: "var(--bg-input)", borderRadius: 8, border: "1px solid var(--border)" }}>
-            Nenhum lançamento registrado ainda.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {lancamentosOrdenados.map((l) => {
-              const cfg = tipoConfig[l.tipo];
-              const contrato = contratoMap[l.mentorandaNome];
-              return (
-                <div
-                  key={l.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "11px 14px",
-                    borderRadius: 8,
-                    background: "var(--bg-input)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  {/* Ícone */}
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: cfg.bg, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.cor, flexShrink: 0 }}>
-                    {cfg.icone}
-                  </div>
-
-                  {/* Mentorada + descrição */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                      <p style={{ fontSize: 12, fontWeight: 600, margin: 0 }}>{l.mentorandaNome.split(" ")[0]} {l.mentorandaNome.split(" ")[1]}</p>
-                      {contrato && (
-                        <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 999, background: contrato.cor + "15", color: contrato.cor, fontWeight: 600, whiteSpace: "nowrap" }}>{contrato.programa}</span>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: cfg.bg, color: cfg.cor, fontWeight: 600, whiteSpace: "nowrap" }}>{cfg.label}</span>
-                      <span style={{ fontSize: 10, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{formatarData(l.data)}</span>
-                      {l.descricao && <span style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.descricao}</span>}
-                    </div>
-                  </div>
-
-                  {/* Valor */}
-                  <span style={{ fontSize: 13, fontWeight: 700, color: cfg.sinal === "+" ? "#86efac" : "#fca5a5", whiteSpace: "nowrap", flexShrink: 0 }}>
-                    {cfg.sinal} R$ {l.valor.toLocaleString("pt-BR")}
-                  </span>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Valor (R$) *</label>
+                  <input value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} placeholder="0,00" style={{ width: "100%", padding: "9px 12px", fontSize: 13 }} />
                 </div>
-              );
-            })}
+                <div>
+                  <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Data</label>
+                  <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} style={{ width: "100%", padding: "9px 12px", fontSize: 13 }} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Categoria</label>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {CATEGORIAS.map(c => (
+                    <button key={c.value} type="button" onClick={() => setForm({ ...form, categoria: c.value })} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 6, cursor: "pointer", border: `1px solid ${form.categoria === c.value ? c.cor + "80" : "var(--border)"}`, background: form.categoria === c.value ? c.cor + "18" : "transparent", color: form.categoria === c.value ? c.cor : "var(--text-muted)", fontWeight: form.categoria === c.value ? 700 : 400 }}>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Observações</label>
+                <textarea value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} rows={2} style={{ width: "100%", padding: "9px 12px", fontSize: 13, resize: "vertical" }} placeholder="Opcional..." />
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end" style={{ marginTop: 20 }}>
+              <button className="btn-ghost" onClick={() => setFormAberto(false)}>Cancelar</button>
+              <button className="btn-gold" onClick={adicionar} disabled={!form.descricao || !form.valor || salvando}>
+                {salvando ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
 }

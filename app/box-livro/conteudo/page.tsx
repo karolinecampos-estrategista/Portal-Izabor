@@ -54,9 +54,9 @@ function formatDate(iso: string) {
 }
 
 export default function BoxLivroConteudo() {
-  const [materiais, setMateriais] = useState<Material[]>(MATERIAIS_INICIAL);
-  const [aulas, setAulas] = useState<AulaGravada[]>(AULAS_INICIAL);
-  const [encontros, setEncontros] = useState<Encontro[]>(ENCONTROS_INICIAL);
+  const [materiais, setMateriais] = useState<Material[]>([]);
+  const [aulas, setAulas] = useState<AulaGravada[]>([]);
+  const [encontros, setEncontros] = useState<Encontro[]>([]);
 
   const [formMaterial, setFormMaterial] = useState<Omit<Material, "id">>(MATERIAL_VAZIO);
   const [formAula, setFormAula] = useState<Omit<AulaGravada, "id">>(AULA_VAZIA);

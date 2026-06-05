@@ -23,7 +23,7 @@ interface Tarefa {
 const TAREFAS_INICIAL: Tarefa[] = [
   { id: 1, titulo: "Preparar material da Imersao BW — modulo de fe", descricao: "Revisar slides e exercicios praticos para o modulo de identidade espiritual", pilar: "Fe", prioridade: "Alta", status: "Em andamento", data: "24 Mai 2026", hora: "09:00", prazo: "2026-05-28", naAgenda: true },
   { id: 2, titulo: "Gravar devocional semanal para YouTube", descricao: "Tema: Mulher que ora antes de reagir — Proverbios 31", pilar: "Fe", prioridade: "Alta", status: "Pendente", data: "24 Mai 2026", hora: "10:30", prazo: "2026-05-26", naAgenda: false },
-  { id: 3, titulo: "Responder mensagens das mentorandas no grupo", descricao: "Verificar grupo do Club BW e dar feedbacks pendentes", pilar: "Lideranca", prioridade: "Media", status: "Pendente", data: "23 Mai 2026", hora: "14:00", prazo: "", naAgenda: false },
+  { id: 3, titulo: "Responder mensagens das mentoradas no grupo", descricao: "Verificar grupo do Club BW e dar feedbacks pendentes", pilar: "Lideranca", prioridade: "Media", status: "Pendente", data: "23 Mai 2026", hora: "14:00", prazo: "", naAgenda: false },
   { id: 4, titulo: "Criar pauta do proximo encontro do Club BW", descricao: "Definir tema, dinamica e leitura base para o mes de junho", pilar: "Mentalidade", prioridade: "Media", status: "Pendente", data: "22 Mai 2026", hora: "11:00", prazo: "2026-05-30", naAgenda: true },
   { id: 5, titulo: "Revisar contrato de mentoria individual", descricao: "Atualizar clausulas de sessoes e entregaveis para novas alunas", pilar: "Geral", prioridade: "Baixa", status: "Concluida", data: "21 Mai 2026", hora: "16:00", prazo: "", naAgenda: false },
 ];
@@ -67,7 +67,7 @@ function prazoVencido(iso: string) {
 }
 
 export default function Tarefas() {
-  const [tarefas, setTarefas] = useState<Tarefa[]>(TAREFAS_INICIAL);
+  const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [filtroStatus, setFiltroStatus] = useState<Status | "Todas">("Todas");
   const [filtroPilar, setFiltroPilar] = useState<Pilar | "Todos">("Todos");
   const [mostrarForm, setMostrarForm] = useState(false);

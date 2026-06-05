@@ -1,20 +1,55 @@
 "use client";
 
-import { Sunrise, Camera, Star, Lock, Crown, Heart, Instagram, Youtube, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sunrise, Star, Crown, Heart, Instagram, Youtube, ExternalLink, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-const textoAntes = "Entrei na mentoria com o coração partido e sem acreditar em mim mesma. Minha empresa estava estagnada há 2 anos, meu casamento passando por uma crise que eu não conseguia nem verbalizar. Sentia que estava sempre no modo sobrevivência — nunca no modo extraordinário que eu sabia que estava dentro de mim.";
+type Marco = { id: string; texto: string; feito: boolean; semana: string; ordem: number };
+type Plano = { id: string; mentorada_nome: string; programa: string; marcos: Marco[] };
 
 export default function MeuInicio() {
+  const [plano, setPlano] = useState<Plano | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [dataInicio, setDataInicio] = useState<string | null>(null);
 
-  const LINHA_DO_TEMPO = [
-    { semana: 1, marco: "Primeira sessão — quebrando o silêncio", cor: "#C9A84C", feito: true },
-    { semana: 4, marco: "Descoberta da crença limitante central", cor: "#a78bfa", feito: true },
-    { semana: 8, marco: "Primeira declaração de identidade em público", cor: "#86efac", feito: true },
-    { semana: 12, marco: "Ação corajosa no negócio", cor: "#93c5fd", feito: false },
-    { semana: 16, marco: "Resultados visíveis — antes e depois", cor: "#f9a8d4", feito: false },
-    { semana: 20, marco: "Preparação para o encontro presencial", cor: "#fca5a5", feito: false },
-    { semana: 24, marco: "Encontro Presencial BW — foto do depois ✨", cor: "#C9A84C", feito: false },
-  ];
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { setCarregando(false); return; }
+
+      const { data: mentorada } = await supabase
+        .from("mentoradas")
+        .select("nome, criado_em")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (mentorada?.criado_em) {
+        const d = new Date(mentorada.criado_em);
+        setDataInicio(d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }));
+      }
+
+      if (mentorada?.nome) {
+        const res = await fetch("/api/planos");
+        const planos: Plano[] = await res.json();
+        const meuPlano = planos.find((p) => p.mentorada_nome === mentorada.nome) ?? null;
+        setPlano(meuPlano);
+      }
+
+      setCarregando(false);
+    });
+  }, []);
+
+  const marcosOrdenados = [...(plano?.marcos ?? [])].sort((a, b) => a.ordem - b.ordem);
+  const feitos = marcosOrdenados.filter((m) => m.feito).length;
+  const prog = marcosOrdenados.length > 0 ? Math.round((feitos / marcosOrdenados.length) * 100) : 0;
+
+  if (carregando) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, gap: 10, color: "var(--text-muted)" }}>
+        <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
+        <span style={{ fontSize: 14 }}>Carregando...</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto" }}>
@@ -25,136 +60,99 @@ export default function MeuInicio() {
           <Sunrise size={16} style={{ color: "var(--gold)" }} />
           <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Meu Começo</span>
         </div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Antes & Depois</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Meu Começo na Mentoria</h1>
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-          Registre de onde você saiu para saber o quão longe chegou. Seu testemunho é poderoso.
+          Registre de onde você saiu para saber o quão longe chegou.
         </p>
       </div>
 
-      {/* Antes / Depois side by side */}
-      <div className="grid-cols-2" style={{ marginBottom: 24 }}>
+      {/* Card de início */}
+      <div
+        className="card glow-gold"
+        style={{
+          padding: "24px",
+          marginBottom: 24,
+          background: "linear-gradient(135deg, #111111 0%, #161208 100%)",
+          border: "1px solid var(--gold-border)",
+        }}
+      >
+        <div className="flex items-center gap-2" style={{ marginBottom: 14 }}>
+          <Sunrise size={14} style={{ color: "var(--gold)" }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>Meu Começo</span>
+          {dataInicio && (
+            <span style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-input)", padding: "2px 8px", borderRadius: 999, marginLeft: "auto" }}>
+              {dataInicio.charAt(0).toUpperCase() + dataInicio.slice(1)}
+            </span>
+          )}
+        </div>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7, margin: 0, fontStyle: "italic" }}>
+          Você começou sua jornada Build Woman. Este é o seu ponto de partida — cada passo daqui para frente é uma declaração de fé em ação.
+        </p>
+      </div>
 
-        {/* Antes */}
-        <div className="card" style={{ padding: "20px 22px", border: "1px solid var(--gold-border)" }}>
+      {/* Plano de ação / marcos */}
+      {marcosOrdenados.length > 0 ? (
+        <div className="card" style={{ padding: "20px 22px", marginBottom: 20 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
             <div className="flex items-center gap-2">
-              <Sunrise size={14} style={{ color: "var(--gold)" }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>Meu Começo</span>
+              <Star size={14} style={{ color: "var(--gold)" }} />
+              <span style={{ fontSize: 13, fontWeight: 600 }}>Minha Linha do Tempo</span>
             </div>
-            <span style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-input)", padding: "2px 8px", borderRadius: 999 }}>Mai 2026</span>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{feitos}/{marcosOrdenados.length} marcos</span>
           </div>
 
-          {/* Foto antes */}
-          <div
-            style={{
-              width: "100%",
-              aspectRatio: "4/3",
-              background: "var(--bg-input)",
-              borderRadius: 10,
-              border: "2px dashed var(--gold-border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 16,
-              cursor: "pointer",
-              flexDirection: "column",
-              gap: 8,
-            }}
-          >
-            <Camera size={28} style={{ color: "var(--gold)", opacity: 0.6 }} />
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, textAlign: "center" }}>
-              Adicionar foto de hoje
-            </p>
-            <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Como você está chegando</span>
+          {/* Progresso */}
+          <div style={{ marginBottom: 18 }}>
+            <div className="progress-bar" style={{ height: 6, marginBottom: 6 }}>
+              <div className="progress-fill" style={{ width: `${prog}%`, background: "var(--gold)" }} />
+            </div>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{prog}% da jornada concluída</span>
           </div>
 
-          {/* Texto antes — preenchido pela Izabor */}
-          <p style={{ fontSize: 12, fontStyle: "italic", color: "var(--text-soft)", lineHeight: 1.7, margin: 0 }}>
-            "{textoAntes}"
+          <div style={{ position: "relative" }}>
+            <div style={{ position: "absolute", left: 11, top: 16, bottom: 16, width: 2, background: "var(--border)", zIndex: 0 }} />
+            <div className="flex flex-col gap-4">
+              {marcosOrdenados.map((item) => (
+                <div key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: 16, position: "relative", zIndex: 1 }}>
+                  <div style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: item.feito ? "var(--gold)" : "var(--bg-input)",
+                    border: item.feito ? "2px solid var(--gold)" : "2px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    {item.feito
+                      ? <Heart size={11} style={{ color: "#000" }} />
+                      : <Crown size={11} style={{ color: "var(--text-muted)" }} />
+                    }
+                  </div>
+                  <div style={{ flex: 1, paddingBottom: 8 }}>
+                    <div className="flex items-center gap-2" style={{ marginBottom: 2 }}>
+                      <span style={{ fontSize: 10, color: "var(--gold)", fontWeight: 600, textTransform: "uppercase" }}>{item.semana}</span>
+                      {item.feito && (
+                        <span style={{ fontSize: 9, background: "rgba(134,239,172,0.1)", color: "#86efac", padding: "1px 6px", borderRadius: 999 }}>Concluído</span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 13, color: item.feito ? "var(--text-soft)" : "var(--text)", margin: 0 }}>{item.texto}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: "32px", marginBottom: 20, textAlign: "center" }}>
+          <Star size={28} style={{ color: "var(--gold)", opacity: 0.4, marginBottom: 12 }} />
+          <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 6px" }}>Sua linha do tempo está sendo criada</p>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+            A Izabor vai montar seu plano personalizado após as primeiras sessões.
           </p>
         </div>
-
-        {/* Depois — bloqueado até o encontro presencial */}
-        <div
-          className="card"
-          style={{
-            padding: "20px 22px",
-            border: "1px solid var(--border)",
-            opacity: 0.7,
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ position: "absolute", inset: 0, background: "rgba(8,8,8,0.6)", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 12 }}>
-            <div style={{ textAlign: "center", padding: 24 }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(201,168,76,0.15)", border: "1px solid var(--gold-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
-                <Lock size={22} style={{ color: "var(--gold)" }} />
-              </div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--gold)", margin: "0 0 8px" }}>Desbloqueado no Encontro Presencial</p>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, margin: "0 0 14px" }}>
-                Na Semana 24, no encontro presencial BW, você vai tirar a foto do seu "depois" e registrar aqui a mulher que você se tornou.
-              </p>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 999, background: "var(--gold-light)", border: "1px solid var(--gold-border)", fontSize: 12, color: "var(--gold)", fontWeight: 600 }}>
-                <Crown size={13} /> Agosto 2026
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2" style={{ marginBottom: 16 }}>
-            <Crown size={14} style={{ color: "var(--gold)" }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>Minha Chegada</span>
-          </div>
-          <div style={{ width: "100%", aspectRatio: "4/3", background: "var(--bg-input)", borderRadius: 10, border: "1px solid var(--border)", marginBottom: 16 }} />
-          <div style={{ height: 100, background: "var(--bg-input)", borderRadius: 8 }} />
-        </div>
-      </div>
-
-      {/* Linha do tempo */}
-      <div className="card" style={{ padding: "20px 22px", marginBottom: 20 }}>
-        <div className="flex items-center gap-2" style={{ marginBottom: 20 }}>
-          <Star size={14} style={{ color: "var(--gold)" }} />
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Minha Linha do Tempo</span>
-          <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: "auto" }}>24 semanas · 6 meses</span>
-        </div>
-
-        <div style={{ position: "relative" }}>
-          {/* Linha vertical */}
-          <div style={{ position: "absolute", left: 11, top: 16, bottom: 16, width: 2, background: "var(--border)", zIndex: 0 }} />
-
-          <div className="flex flex-col gap-4">
-            {LINHA_DO_TEMPO.map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 16, position: "relative", zIndex: 1 }}>
-                {/* Marcador */}
-                <div style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: "50%",
-                  background: item.feito ? item.cor : "var(--bg-input)",
-                  border: item.feito ? `2px solid ${item.cor}` : "2px solid var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}>
-                  {item.feito
-                    ? <Heart size={11} style={{ color: "#000" }} />
-                    : item.semana === 24
-                    ? <Crown size={11} style={{ color: "var(--text-muted)" }} />
-                    : <Lock size={11} style={{ color: "var(--text-muted)" }} />
-                  }
-                </div>
-                {/* Conteúdo */}
-                <div style={{ flex: 1, paddingBottom: 8 }}>
-                  <div className="flex items-center gap-2" style={{ marginBottom: 2 }}>
-                    <span style={{ fontSize: 10, color: item.cor, fontWeight: 600, textTransform: "uppercase" }}>Semana {item.semana}</span>
-                    {item.feito && <span style={{ fontSize: 9, background: "rgba(134,239,172,0.1)", color: "#86efac", padding: "1px 6px", borderRadius: 999 }}>Concluído</span>}
-                  </div>
-                  <p style={{ fontSize: 13, color: item.feito ? "var(--text)" : "var(--text-muted)", margin: 0 }}>{item.marco}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Links Izabor */}
       <div className="card" style={{ padding: "18px 20px", marginBottom: 20 }}>
@@ -168,7 +166,7 @@ export default function MeuInicio() {
             href="https://www.instagram.com/izaborcruz_?igsh=bDUxaDk0ZG5jNGti"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: "rgba(236,72,153,0.1)", border: "1px solid rgba(236,72,153,0.2)", textDecoration: "none", transition: "all 0.15s" }}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: "rgba(236,72,153,0.1)", border: "1px solid rgba(236,72,153,0.2)", textDecoration: "none" }}
           >
             <Instagram size={18} style={{ color: "#f9a8d4" }} />
             <div>
@@ -180,7 +178,7 @@ export default function MeuInicio() {
             href="https://youtube.com/@izaborcruz_?si=XXPbPzy1o8LX11yq"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", textDecoration: "none", transition: "all 0.15s" }}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", textDecoration: "none" }}
           >
             <Youtube size={18} style={{ color: "#fca5a5" }} />
             <div>
@@ -191,7 +189,7 @@ export default function MeuInicio() {
         </div>
       </div>
 
-      {/* Citação motivacional */}
+      {/* Citação */}
       <div
         className="card glow-gold"
         style={{
@@ -202,10 +200,12 @@ export default function MeuInicio() {
         }}
       >
         <p style={{ fontSize: 15, fontStyle: "italic", color: "var(--text-soft)", lineHeight: 1.7, margin: "0 0 10px" }}>
-          "Sua história de transformação é o maior testemunho de que Deus cumpre o que promete. Não apague o caminho — ele faz parte do extraordinário."
+          &ldquo;Sua história de transformação é o maior testemunho de que Deus cumpre o que promete. Não apague o caminho — ele faz parte do extraordinário.&rdquo;
         </p>
         <p style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600 }}>— Izabor Cruz</p>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
 }

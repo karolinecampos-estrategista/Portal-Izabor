@@ -65,18 +65,13 @@ interface Mentoranda {
   whatsapp: string;
   instagram: string;
   loginCriado: boolean;
+  acesso: "mentoria" | "livro" | "ambos";
+  mostrarFinanceiro: boolean;
+  produtosAtivos: Record<string, boolean>;
 }
 
 const CORES = ["#C9A84C", "#a78bfa", "#86efac", "#93c5fd", "#f9a8d4", "#fca5a5"];
 
-const MENTORANDAS_INICIAL: Mentoranda[] = [
-  { id: 1, nome: "Ana Paula Ferreira", email: "anapaula@email.com", programa: "Imersao BW", inicio: "01 Mar 2026", sessoes: 8, totalSessoes: 10, status: "ativo", notas: "Trabalhando identidade e proposito. Quebra de crenca sobre merecimento. Progresso forte na area de lideranca.", proxima: "26 Mai - 10:00", pilares: ["Fe", "Lideranca"], cor: "#C9A84C", origem: "Instagram", valorNegociado: 5000, formaPagamento: "cartao", totalParcelas: 6, anotacoesNegociacao: "Negociou parcelamento em 6x. Muito determinada.", aniversario: "12/08", whatsapp: "(11) 99999-0001", instagram: "@anapaula.empreende", loginCriado: true },
-  { id: 2, nome: "Camila Souza", email: "camila@email.com", programa: "Mentoria Individual", inicio: "15 Mar 2026", sessoes: 4, totalSessoes: 8, status: "ativo", notas: "Foco em inteligencia emocional no casamento. Trabalhando comunicacao nao violenta. Muita entrega.", proxima: "28 Mai - 14:00", pilares: ["Emocional", "Familia"], cor: "#a78bfa", origem: "Indicacao de aluna", valorNegociado: 3500, formaPagamento: "parcelado", totalParcelas: 4, anotacoesNegociacao: "Veio por indicacao da Fernanda Lima.", aniversario: "03/11", whatsapp: "(21) 98888-0002", instagram: "@camilasouz", loginCriado: true },
-  { id: 3, nome: "Fernanda Lima", email: "fernanda@email.com", programa: "Club BW", inicio: "01 Jan 2026", sessoes: 18, totalSessoes: 20, status: "ativo", notas: "Aluna mais dedicada do grupo. Lideranca nata. Esta mentorando outras mulheres dentro do Club.", proxima: "27 Mai - 19:30", pilares: ["Lideranca", "Fe"], cor: "#86efac", origem: "Instagram", valorNegociado: 1200, formaPagamento: "cartao", totalParcelas: 12, anotacoesNegociacao: "Clube anual. Renovacao prevista para jan/2027.", aniversario: "15/04", whatsapp: "(31) 97777-0003", instagram: "@fernandalima.lider", loginCriado: true },
-  { id: 4, nome: "Juliana Matos", email: "juliana@email.com", programa: "Mentoria Individual", inicio: "10 Abr 2026", sessoes: 2, totalSessoes: 6, status: "ativo", notas: "Primeira sessao muito intensa. Precisa de um espaco seguro. Avancando devagar, mas avancando.", proxima: "30 Mai - 16:00", pilares: ["Emocional", "Mentalidade"], cor: "#93c5fd", origem: "YouTube", valorNegociado: 3000, formaPagamento: "boleto", totalParcelas: 3, anotacoesNegociacao: "Preferiu boleto. Pagamento confirmado.", aniversario: "28/06", whatsapp: "(11) 96666-0004", instagram: "@juliana.matos", loginCriado: false },
-  { id: 5, nome: "Renata Costa", email: "renata@email.com", programa: "Imersao BW", inicio: "01 Fev 2026", sessoes: 10, totalSessoes: 10, status: "concluido", notas: "Transformacao incrivel. Saiu da imersao com um negocio proprio e clareza de proposito.", proxima: "", pilares: ["Lideranca", "Fe", "Mentalidade"], cor: "#f9a8d4", origem: "Stories do Instagram", valorNegociado: 4500, formaPagamento: "cartao", totalParcelas: 5, anotacoesNegociacao: "Pagamento a vista com desconto de 10%.", aniversario: "07/02", whatsapp: "(85) 95555-0005", instagram: "@renata.incr", loginCriado: true },
-  { id: 6, nome: "Patricia Alves", email: "", programa: "Club BW", inicio: "01 Abr 2026", sessoes: 5, totalSessoes: 20, status: "ativo", notas: "Em fase de integracao. Participa ativamente dos grupos. Transformacao visivel na postura.", proxima: "27 Mai - 19:30", pilares: ["Fe", "Emocional"], cor: "#fca5a5", origem: "Whatsapp / amiga", valorNegociado: 1200, formaPagamento: "outra-plataforma", totalParcelas: 12, anotacoesNegociacao: "Pagou via Hotmart.", aniversario: "19/09", whatsapp: "(47) 94444-0006", instagram: "@patricia.alves.bw", loginCriado: false },
-];
 
 const catColor: Record<Pilar, string> = {
   Fe: "tag-fe", Mentalidade: "tag-mentalidade", Lideranca: "tag-lideranca",
@@ -93,15 +88,15 @@ const FORMAS_PAGAMENTO: { value: FormaPagamento; label: string }[] = [
   { value: "parcelado", label: "Parcelado (outro)" },
   { value: "outra-plataforma", label: "Outra Plataforma" },
 ];
-const FORM_VAZIO: Omit<Mentoranda, "id"> = { nome: "", email: "", programa: "Mentoria Individual", inicio: "", sessoes: 0, totalSessoes: 6, status: "ativo", notas: "", proxima: "", pilares: ["Fe"], cor: "#C9A84C", origem: "", valorNegociado: 0, formaPagamento: "cartao", totalParcelas: 1, anotacoesNegociacao: "", aniversario: "", whatsapp: "", instagram: "", loginCriado: false };
+const FORM_VAZIO: Omit<Mentoranda, "id"> = { nome: "", email: "", programa: "Mentoria Individual", inicio: "", sessoes: 0, totalSessoes: 6, status: "ativo", notas: "", proxima: "", pilares: ["Fe"], cor: "#C9A84C", origem: "", valorNegociado: 0, formaPagamento: "cartao", totalParcelas: 1, anotacoesNegociacao: "", aniversario: "", whatsapp: "", instagram: "", loginCriado: false, acesso: "mentoria" as "mentoria" | "livro" | "ambos", mostrarFinanceiro: false, produtosAtivos: {} };
 
-const DEVOCIONAIS_LISTA = [
-  { id: 1, titulo: "Fé que move montanhas", tipo: "Texto", data: "28 Mai 2026" },
-  { id: 2, titulo: "Identidade em Cristo", tipo: "Texto", data: "21 Mai 2026" },
-  { id: 3, titulo: "A mulher que Deus criou", tipo: "Texto", data: "14 Mai 2026" },
-  { id: 4, titulo: "Propósito e Chamado", tipo: "Texto", data: "07 Mai 2026" },
-  { id: 5, titulo: "Coragem para liderar", tipo: "Texto", data: "30 Abr 2026" },
+const PRODUTOS_IZA = [
+  { id: "seja_incomum", label: "Seja Incomum",     cor: "#C9A84C", emoji: "👑" },
+  { id: "livro",        label: "Livro",            cor: "#86efac", emoji: "📖" },
+  { id: "club_bw",      label: "Club BW",          cor: "#a78bfa", emoji: "💜" },
+  { id: "evento",       label: "Evento · Simplesmente Seja", cor: "#fca5a5", emoji: "🔥" },
 ];
+
 
 function dbParaFrontend(d: Record<string, unknown>): Mentoranda {
   return {
@@ -126,6 +121,9 @@ function dbParaFrontend(d: Record<string, unknown>): Mentoranda {
     anotacoesNegociacao: (d.anotacoes_negociacao as string) ?? "",
     cor: (d.cor as string) ?? "#C9A84C",
     loginCriado: (d.login_criado as boolean) ?? false,
+    acesso: ((d.acesso as string) ?? "mentoria") as "mentoria" | "livro" | "ambos",
+    mostrarFinanceiro: (d.mostrar_financeiro as boolean) ?? false,
+    produtosAtivos: (d.produtos_ativos as Record<string, boolean>) ?? {},
   };
 }
 
@@ -155,38 +153,36 @@ export default function Mentorandas() {
   const [loginEnviado, setLoginEnviado] = useState<number | null>(null);
   const [abaModal, setAbaModal] = useState<"perfil" | "sessoes" | "plano" | "oracoes">("perfil");
 
-  // Sessões
-  const [sessoesPorAluna, setSessoesPorAluna] = useState<Record<number, Sessao[]>>({
-    1: [{ id: 1, data: "2026-03-05", duracao: "60 min", resumo: "Primeira sessão. Mapeamento de crenças limitantes sobre merecimento e identidade.", proximosPassos: "Ler cap. 1 do livro e registrar 3 crenças por escrito.", linkGravacao: "", presenca: "realizada" }],
-    2: [{ id: 2, data: "2026-03-20", duracao: "60 min", resumo: "Trabalhou comunicação não violenta. Exercício prático com situação do casamento.", proximosPassos: "Praticar a técnica CNV em uma conversa difícil e relatar.", linkGravacao: "", presenca: "realizada" }],
-  });
-  const [formSessao, setFormSessao] = useState(SESSAO_VAZIA);
-  const [showFormSessao, setShowFormSessao] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [deletando, setDeletando] = useState(false);
+  const [devocionais, setDevocionais] = useState<{ id: string; titulo: string; criado_em: string }[]>([]);
 
-  // Plano de ação
-  const [marcosPorAluna, setMarcosPorAluna] = useState<Record<number, MarcoAcao[]>>({
-    1: [
-      { id: 1, titulo: "Escrever declaração de identidade e ler todo dia por 21 dias", prazo: "30 Jun 2026", concluido: true, pilar: "Fe" },
-      { id: 2, titulo: "Ter uma conversa corajosa com sua sócia sobre o negócio", prazo: "15 Jun 2026", concluido: false, pilar: "Lideranca" },
-      { id: 3, titulo: "Definir os 3 pilares do negócio para 2027", prazo: "30 Jul 2026", concluido: false, pilar: "Mentalidade" },
-    ],
-  });
-  const [formMarco, setFormMarco] = useState(MARCO_VAZIO);
-  const [showFormMarco, setShowFormMarco] = useState(false);
-
-  // Orações
-  const [oracoesPorAluna, setOracoesPorAluna] = useState<Record<number, OracaoPedido[]>>({
-    1: [{ id: 1, pedido: "Sabedoria para tomar decisões no negócio e coragem para expandir.", data: "22 Mai 2026", respondida: false }],
-    2: [{ id: 2, pedido: "Restauração do casamento e paz no ambiente familiar.", data: "18 Mai 2026", respondida: true }],
-  });
-  const [formOracao, setFormOracao] = useState(ORACAO_VAZIA);
-  const [showFormOracao, setShowFormOracao] = useState(false);
+  useEffect(() => {
+    fetch("/api/devocionais")
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setDevocionais(d.filter((x: { publicado: boolean }) => x.publicado)); });
+  }, []);
 
   function criarLogin(m: Mentoranda) {
     setMentorandas((prev) => prev.map((x) => x.id === m.id ? { ...x, loginCriado: true } : x));
     setSelecionada((prev) => prev ? { ...prev, loginCriado: true } : prev);
     setLoginEnviado(m.id);
     setTimeout(() => setLoginEnviado(null), 3000);
+  }
+
+  async function salvarCampo(id: number, campo: string, valor: unknown) {
+    setMentorandas(prev => prev.map(m => m.id === id ? { ...m, [campo]: valor } : m));
+    setSelecionada(prev => prev && prev.id === id ? { ...prev, [campo]: valor } : prev);
+    await fetch("/api/mentoradas", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, [campo === "mostrarFinanceiro" ? "mostrarFinanceiro" : campo === "produtosAtivos" ? "produtosAtivos" : campo]: valor }),
+    });
+  }
+
+  function toggleProduto(id: number, produtoId: string, atual: Record<string, boolean>) {
+    const novo = { ...atual, [produtoId]: !atual[produtoId] };
+    salvarCampo(id, "produtosAtivos", novo);
   }
 
   const filtradas = mentorandas.filter((m) => {
@@ -204,20 +200,28 @@ export default function Mentorandas() {
   }
 
   async function salvarNova() {
-    const res = await fetch("/api/mentoradas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setMentorandas((prev) => [dbParaFrontend(data), ...prev]);
-      if (data.loginCriado && form.email) {
-        alert(`✅ Mentorada cadastrada! Convite enviado para ${form.email}`);
+    if (salvando) return;
+    setSalvando(true);
+    try {
+      const res = await fetch("/api/mentoradas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMentorandas((prev) => [dbParaFrontend(data), ...prev]);
+        if (data.loginCriado && form.email) {
+          alert(`✅ Mentorada cadastrada! Convite enviado para ${form.email}`);
+        }
+        setNovaAberta(false);
+        setForm(FORM_VAZIO);
+      } else {
+        alert(`Erro: ${data.error ?? "Não foi possível salvar."}`);
       }
+    } finally {
+      setSalvando(false);
     }
-    setNovaAberta(false);
-    setForm(FORM_VAZIO);
   }
 
   async function salvarEdicao() {
@@ -234,9 +238,16 @@ export default function Mentorandas() {
     setSelecionada(null);
   }
 
-  function deletar(id: number) {
-    setMentorandas((prev) => prev.filter((m) => m.id !== id));
-    setSelecionada(null);
+  async function deletar(id: number) {
+    if (!confirm("Excluir esta mentorada? Essa ação não pode ser desfeita.")) return;
+    setDeletando(true);
+    try {
+      await fetch(`/api/mentoradas?id=${id}`, { method: "DELETE" });
+      setMentorandas((prev) => prev.filter((m) => m.id !== id));
+      setSelecionada(null);
+    } finally {
+      setDeletando(false);
+    }
   }
 
   const ativas = mentorandas.filter((m) => m.status === "ativo").length;
@@ -248,10 +259,10 @@ export default function Mentorandas() {
         <div>
           <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
             <Users size={16} style={{ color: "var(--gold)" }} />
-            <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Mentorandas</span>
+            <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Mentoradas</span>
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Suas Alunas</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Mulheres INCOMUNS em transformacao.</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Suas Extraordinárias</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Mulheres INCOMUNS em transformação.</p>
         </div>
         <button className="btn-gold flex items-center gap-2" onClick={() => setNovaAberta(true)}>
           <Plus size={14} /> Nova Aluna
@@ -311,6 +322,9 @@ export default function Mentorandas() {
                     )}
                   </div>
                   <span style={{ fontSize: 11, color: programaCor[m.programa] }}>{m.programa}</span>
+                  <span style={{ fontSize: 9, padding: "1px 7px", borderRadius: 999, fontWeight: 600, background: m.produtosAtivos?.club_bw ? "rgba(167,139,250,0.12)" : "rgba(201,168,76,0.1)", color: m.produtosAtivos?.club_bw ? "#a78bfa" : "var(--gold)", border: `1px solid ${m.produtosAtivos?.club_bw ? "rgba(167,139,250,0.25)" : "var(--gold-border)"}` }}>
+                    {m.produtosAtivos?.club_bw ? "Mentorada" : "Aluna"}
+                  </span>
                 </div>
                 <ChevronRight size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
               </div>
@@ -483,8 +497,12 @@ export default function Mentorandas() {
               </div>
               {mostrarDevocional && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {DEVOCIONAIS_LISTA.map((d) => {
-                    const jaEnviado = devocionalEnviados[selecionada.id]?.includes(d.id);
+                  {devocionais.length === 0 ? (
+                    <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", padding: "8px 0" }}>
+                      Nenhum devocional publicado ainda. Crie devocionais na seção Devocionais.
+                    </p>
+                  ) : devocionais.map((d) => {
+                    const jaEnviado = devocionalEnviados[selecionada.id]?.includes(d.id as unknown as number);
                     return (
                       <div
                         key={d.id}
@@ -498,7 +516,9 @@ export default function Mentorandas() {
                         <BookHeart size={13} style={{ color: jaEnviado ? "#86efac" : "var(--text-muted)", flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 12, fontWeight: 600, margin: 0, color: jaEnviado ? "#86efac" : "var(--text)" }}>{d.titulo}</p>
-                          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>{d.data}</p>
+                          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>
+                            {new Date(d.criado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                          </p>
                         </div>
                         {jaEnviado ? (
                           <span style={{ fontSize: 10, color: "#86efac", fontWeight: 600, flexShrink: 0 }}>Enviado ✓</span>
@@ -506,7 +526,7 @@ export default function Mentorandas() {
                           <button
                             onClick={() => setDevocionalEnviados((prev) => ({
                               ...prev,
-                              [selecionada.id]: [...(prev[selecionada.id] ?? []), d.id],
+                              [selecionada.id]: [...(prev[selecionada.id] ?? []), d.id as unknown as number],
                             }))}
                             style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid var(--gold-border)", background: "var(--gold-light)", color: "var(--gold)", cursor: "pointer", flexShrink: 0 }}
                           >
@@ -520,11 +540,59 @@ export default function Mentorandas() {
               )}
             </div>
 
-            {/* Login da mentorada */}
+            {/* ── Email ── */}
+            {selecionada.email && (
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, marginBottom: 16 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>E-mail</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--bg-input)", borderRadius: 8, border: "1px solid var(--border)" }}>
+                  <Mail size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: "var(--text-soft)" }}>{selecionada.email}</span>
+                </div>
+              </div>
+            )}
+
+            {/* ── Acesso & Produtos ── */}
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, marginBottom: 16 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Produtos & Acesso</p>
+
+              {/* Financeiro */}
+              <div className="flex items-center justify-between" style={{ marginBottom: 14, padding: "10px 12px", background: "var(--bg-input)", borderRadius: 8, border: "1px solid var(--border)" }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, margin: 0 }}>Mostrar Financeiro</p>
+                  <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "2px 0 0" }}>Exibe a seção de pagamentos no portal</p>
+                </div>
+                <button onClick={() => salvarCampo(selecionada.id, "mostrarFinanceiro", !selecionada.mostrarFinanceiro)}
+                  style={{ width: 44, height: 24, borderRadius: 999, border: "none", cursor: "pointer", background: selecionada.mostrarFinanceiro ? "var(--gold)" : "var(--border)", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                  <span style={{ position: "absolute", top: 3, left: selecionada.mostrarFinanceiro ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                </button>
+              </div>
+
+              {/* Produtos */}
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>Produtos ativos</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {PRODUTOS_IZA.map(p => {
+                  const ativo = !!selecionada.produtosAtivos?.[p.id];
+                  return (
+                    <div key={p.id} className="flex items-center justify-between" style={{ padding: "9px 12px", background: ativo ? p.cor + "10" : "var(--bg-input)", borderRadius: 8, border: `1px solid ${ativo ? p.cor + "40" : "var(--border)"}` }}>
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: 14 }}>{p.emoji}</span>
+                        <span style={{ fontSize: 12, fontWeight: ativo ? 700 : 400, color: ativo ? p.cor : "var(--text-muted)" }}>{p.label}</span>
+                      </div>
+                      <button onClick={() => toggleProduto(selecionada.id, p.id, selecionada.produtosAtivos ?? {})}
+                        style={{ width: 40, height: 22, borderRadius: 999, border: "none", cursor: "pointer", background: ativo ? p.cor : "var(--border)", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                        <span style={{ position: "absolute", top: 2, left: ativo ? 20 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Login das Extraordinárias */}
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, marginBottom: 16 }}>
               <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
                 <KeyRound size={14} style={{ color: "var(--gold)" }} />
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Acesso ao Portal</span>
+                <span style={{ fontSize: 12, fontWeight: 600 }}>Login das Extraordinárias</span>
               </div>
 
               {selecionada.loginCriado ? (
@@ -573,8 +641,8 @@ export default function Mentorandas() {
               )}
             </div>
 
-            <button onClick={() => deletar(selecionada.id)} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#fca5a5", background: "none", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}>
-              <Trash2 size={12} /> Excluir aluna
+            <button onClick={() => deletar(selecionada.id)} disabled={deletando} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#fca5a5", background: "none", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 6, padding: "6px 12px", cursor: deletando ? "not-allowed" : "pointer", opacity: deletando ? 0.6 : 1 }}>
+              <Trash2 size={12} /> {deletando ? "Excluindo..." : "Excluir aluna"}
             </button>
           </div>
         </div>
@@ -641,7 +709,8 @@ export default function Mentorandas() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2 justify-end">
+
+                            <div className="flex gap-2 justify-end">
                 <button className="btn-ghost" onClick={() => setEditando(null)}>Cancelar</button>
                 <button className="btn-gold" onClick={salvarEdicao}>Salvar</button>
               </div>
@@ -712,8 +781,10 @@ export default function Mentorandas() {
                 ))}
               </div>
               <div className="flex gap-2 justify-end">
-                <button className="btn-ghost" onClick={() => setNovaAberta(false)}>Cancelar</button>
-                <button className="btn-gold" onClick={salvarNova} disabled={!form.nome}>Salvar</button>
+                <button className="btn-ghost" onClick={() => setNovaAberta(false)} disabled={salvando}>Cancelar</button>
+                <button className="btn-gold" onClick={salvarNova} disabled={!form.nome || salvando}>
+                  {salvando ? "Salvando..." : "Salvar"}
+                </button>
               </div>
             </div>
           </div>

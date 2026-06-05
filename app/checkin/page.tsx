@@ -71,7 +71,7 @@ export default function CheckinAdminPage() {
           <span style={{ fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Mentoradas</span>
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Check-in Semanal</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Como suas mentoradas estão chegando nesta semana.</p>
+        <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Como suas extraordinárias estão chegando nesta semana.</p>
       </div>
 
       {checkins.length === 0 ? (

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { PlaySquare, Play, Clock, Crown, ExternalLink, Loader2, BookOpen } from "lucide-react";
+import { usePerfil } from "@/hooks/usePerfil";
+import BloqueadoPorProduto from "@/components/BloqueadoPorProduto";
 
 type Aula = {
   id: string;
@@ -15,6 +17,7 @@ type Aula = {
 };
 
 export default function AulasMentoradaPage() {
+  const perfil = usePerfil();
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [moduloFiltro, setModuloFiltro] = useState("todos");
@@ -35,7 +38,7 @@ export default function AulasMentoradaPage() {
   const aulasFiltradas = moduloFiltro === "todos" ? aulas : aulas.filter((a) => a.modulo === moduloFiltro);
   const modulosDaLista = modulos.filter((m) => aulasFiltradas.some((a) => a.modulo === m));
 
-  if (carregando) {
+  if (carregando || perfil.carregando) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, gap: 10, color: "var(--text-muted)" }}>
         <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
@@ -45,6 +48,7 @@ export default function AulasMentoradaPage() {
   }
 
   return (
+    <BloqueadoPorProduto produto="seja_incomum" ativo={!!perfil.produtosAtivos?.seja_incomum}>
     <div style={{ maxWidth: 860, margin: "0 auto", paddingBottom: 48 }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
@@ -149,5 +153,6 @@ export default function AulasMentoradaPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
+    </BloqueadoPorProduto>
   );
 }

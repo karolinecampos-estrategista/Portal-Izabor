@@ -10,7 +10,7 @@
 |---|---|
 | **Cliente** | Izabor Cruz — Mentora de Mulheres INCOMUNS |
 | **Stack** | Next.js 16 · TypeScript · Tailwind · Supabase · Vercel |
-| **URL produção** | https://projeto-iza.vercel.app *(conta Izabor)* |
+| **URL produção** | https://projeto-iza-nine.vercel.app *(conta Izabor)* |
 | **Diretório local** | `/Users/karolinecampos/Downloads/Claude/projeto-iza` |
 | **Vercel scope** | `izabor-cruz-projetos-projects` |
 | **Supabase URL** | `https://hsutkpgtlhlvhugvtmelk.supabase.co` |
@@ -31,17 +31,44 @@ npx vercel --prod --yes --scope izabor-cruz-projetos-projects
 
 ---
 
-## 2. Estado Atual — O Que Está Pronto
+## 2. Sistema de Acesso por Perfil (novo — 04/06/2026)
+
+Campo `acesso` na tabela `mentoradas`:
+- `mentoria` (padrão) — portal completo de mentoria
+- `livro` — apenas Box do Livro + Produtos + Cupons
+- `ambos` — tudo liberado
+
+A Izabor define o acesso em Mentorandas → Editar → "Acesso ao Portal".
+Migration aplicada: `ALTER TABLE mentoradas ADD COLUMN IF NOT EXISTS acesso TEXT DEFAULT 'mentoria';`
+
+---
+
+## Estado Atual — O Que Está Pronto (atualizado 04/06/2026)
 
 ### ✅ Frontend completo (todas as páginas)
 Dois portais separados com design dark/gold premium:
-- **Admin (Izabor)** em `/` — dashboard, mentoradas, aulas, devocionais, desafios, tarefas, sessões, check-ins, planos, diagnósticos, box do livro, financeiro
-- **Mentorada** em `/mentorada/*` — início, agenda, aulas, devocional, check-in, plano, tarefas, jornada, diagnóstico, box do livro, depoimentos, chat, financeiro
+- **Admin (Izabor)** em `/` — sidebar reorganizada (Produtos acima de Mentoradas), seção Mentoradas (antes Alunas), Evento visível na sidebar
+- **Mentorada** em `/mentorada/*` — login "/acesso" = "Login das Extraordinárias", logo mobile com fundo preto integrado
+
+### ✅ Sidebar Admin — Ordem correta (04/06/2026)
+Seção Produtos (acima): Visão Geral · Mentoria Ind. Mentoradas · Mentoria Ind. Aulas · Livro Compradores · Livro Conteúdo · **Evento Compradores**
+Seção Mentoradas: Dashboard → Cadastro → Diagnósticos → Check-in → Sessões → Planos → Devocionais → Desafios → Tarefas → Depoimentos → Chat
+
+### ✅ Produtos atualizados
+- Seja Incomum: tipo "Mentoria Individual" (não "Curso")
+- Club BW: tipo "Mentoria · 6 meses" (não "Assinatura Mensal"), 6 meses de acompanhamento
+
+### ⚠️ MIGRATION OBRIGATÓRIA — Rodar antes de testar compradores
+Arquivo: `supabase-migration-produtos.sql` na raiz do projeto.
+Colar no Supabase > SQL Editor e rodar. Cria:
+- `seja_incomum_compradores` — mentoradas da mentoria individual
+- `evento_compradores` — participantes do Evento Simplesmente Seja  
+- `box_livro_compradores` — compradores do Box do Livro (agora conectado ao banco)
 
 ### ✅ Backend Supabase — Database
-Tabelas criadas e ativas:
+Tabelas criadas e ativas (via supabase-schema.sql):
 - `perfis` — tipo admin/mentorada, vinculado a auth.users
-- `mentoradas` — cadastro completo das mentoradas
+- `mentoradas` — cadastro completo das mentoradas (com campo `acesso`)
 - `sessoes` — histórico de sessões
 - `check_ins` — check-ins semanais
 - `diagnosticos` — quiz emocional/espiritual

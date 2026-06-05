@@ -59,12 +59,35 @@ export async function POST(req: NextRequest) {
       anotacoes_negociacao: body.anotacoesNegociacao ?? null,
       cor: body.cor ?? "#C9A84C",
       login_criado: loginCriado,
+      acesso: body.acesso ?? "mentoria",
+      mostrar_financeiro: body.mostrarFinanceiro ?? false,
+      produtos_ativos: body.produtosAtivos ?? {},
     })
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ...data, loginCriado });
+}
+
+// DELETE — remove mentorada e usuário Auth
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id obrigatório" }, { status: 400 });
+
+  // Busca user_id antes de deletar
+  const { data: m } = await supabaseAdmin.from("mentoradas").select("user_id").eq("id", id).single();
+
+  const { error } = await supabaseAdmin.from("mentoradas").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Remove da Auth se tiver login
+  if (m?.user_id) {
+    await supabaseAdmin.auth.admin.deleteUser(m.user_id);
+  }
+
+  return NextResponse.json({ ok: true });
 }
 
 // PATCH — atualiza mentorada
@@ -94,6 +117,9 @@ export async function PATCH(req: NextRequest) {
       total_parcelas: campos.totalParcelas,
       anotacoes_negociacao: campos.anotacoesNegociacao,
       cor: campos.cor,
+      acesso: campos.acesso,
+      mostrar_financeiro: campos.mostrarFinanceiro,
+      produtos_ativos: campos.produtosAtivos,
     })
     .eq("id", id)
     .select()

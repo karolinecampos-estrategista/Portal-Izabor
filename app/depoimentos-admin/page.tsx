@@ -67,8 +67,8 @@ const programaCor: Record<string, string> = {
 };
 
 export default function DepoimentosAdmin() {
-  const [pendentes, setPendentes] = useState<DepoimentoPendente[]>(PENDENTES_INICIAL);
-  const [aprovados, setAprovados] = useState<DepoimentoPendente[]>(APROVADOS_INICIAL);
+  const [pendentes, setPendentes] = useState<DepoimentoPendente[]>([]);
+  const [aprovados, setAprovados] = useState<DepoimentoPendente[]>([]);
   const [expandido, setExpandido] = useState<number | null>(null);
 
   function aprovar(id: number) {

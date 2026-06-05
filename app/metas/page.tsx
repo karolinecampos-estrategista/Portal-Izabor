@@ -122,7 +122,7 @@ const statusConfig: Record<MetaStatus, { label: string; color: string }> = {
 const AREAS: MetaArea[] = ["Negocio", "Conteudo", "Espiritualidade", "Financeiro", "Pessoal"];
 
 export default function Metas() {
-  const [metas, setMetas] = useState<Meta[]>(METAS_INICIAL);
+  const [metas, setMetas] = useState<Meta[]>([]);
   const [expandida, setExpandida] = useState<number | null>(1);
   const [filtroArea, setFiltroArea] = useState("Todas");
   const [novaAberta, setNovaAberta] = useState(false);

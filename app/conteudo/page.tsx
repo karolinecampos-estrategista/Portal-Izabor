@@ -54,7 +54,7 @@ const FORMATOS_YT: Formato[] = ["Video", "Shorts", "Live"];
 const FORM_VAZIO: Omit<Conteudo, "id"> = { titulo: "", formato: "Reels", canal: "Instagram", pilar: "Fe", hora: "09:00", data: "", status: "rascunho", gancho: "", cta: "" };
 
 export default function Conteudo() {
-  const [conteudos, setConteudos] = useState<Conteudo[]>(CONTEUDOS_INICIAL);
+  const [conteudos, setConteudos] = useState<Conteudo[]>([]);
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [detalhe, setDetalhe] = useState<Conteudo | null>(null);
   const [editando, setEditando] = useState<Conteudo | null>(null);

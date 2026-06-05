@@ -6,37 +6,42 @@ import Sidebar from "./Sidebar";
 import SidebarMentorada from "./SidebarMentorada";
 import { supabase } from "@/lib/supabase";
 
-const ROTAS_PUBLICAS = ["/login", "/mentorada/acolhimento"];
+const ROTAS_PUBLICAS = ["/login", "/acesso", "/mentorada/acolhimento"];
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [verificando, setVerificando] = useState(true);
-  const [tipo, setTipo] = useState<"admin" | "mentorada" | null>(null);
+  const [tipo, setTipo] = useState<"admin" | "extraordinaria" | null>(null);
+  const [mostrarFinanceiro, setMostrarFinanceiro] = useState(false);
+  const [produtosAtivos, setProdutosAtivos] = useState<Record<string, boolean>>({});
 
   const isPublica = ROTAS_PUBLICAS.some((r) => pathname.startsWith(r));
-  const isMentorada = pathname.startsWith("/mentorada");
+  const isPortalExtra = pathname.startsWith("/mentorada");
 
   useEffect(() => {
     if (isPublica) { setVerificando(false); return; }
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) {
-        router.replace("/login");
+        router.replace(isPortalExtra ? "/acesso" : "/login");
         return;
       }
 
-      const { data: perfil } = await supabase
-        .from("perfis")
-        .select("tipo")
-        .eq("id", session.user.id)
-        .single();
+      const res = await fetch("/api/perfil", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const perfil = res.ok ? await res.json() : { tipo: "mentorada" };
 
-      const t = perfil?.tipo ?? "mentorada";
+      // "mentorada" no banco → "extraordinaria" no front
+      const t = perfil?.tipo === "admin" ? "admin" : "extraordinaria";
       setTipo(t);
+      setMostrarFinanceiro(perfil?.mostrarFinanceiro ?? false);
+      setProdutosAtivos(perfil?.produtosAtivos ?? {});
 
-      if (t === "admin" && isMentorada) { router.replace("/"); return; }
-      if (t === "mentorada" && !isMentorada) { router.replace("/mentorada"); return; }
+      // Redirecionamentos básicos
+      if (t === "admin" && isPortalExtra) { router.replace("/"); return; }
+      if (t === "extraordinaria" && !isPortalExtra) { router.replace("/mentorada"); return; }
 
       setVerificando(false);
     });
@@ -52,7 +57,10 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   return (
     <>
-      {isMentorada && tipo === "mentorada" ? <SidebarMentorada /> : <Sidebar />}
+      {isPortalExtra && tipo === "extraordinaria"
+        ? <SidebarMentorada mostrarFinanceiro={mostrarFinanceiro} produtosAtivos={produtosAtivos} />
+        : <Sidebar />
+      }
       <main className="main-layout">
         <div className="md:hidden" style={{ height: 52, flexShrink: 0 }} />
         {children}

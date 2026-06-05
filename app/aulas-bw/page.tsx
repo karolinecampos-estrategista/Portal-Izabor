@@ -145,10 +145,10 @@ export default function AulasBWAdmin() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
             <PlaySquare size={20} style={{ color: "var(--gold)" }} />
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: 0 }}>Aulas BW</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: 0 }}>Seja Incomum — Aulas</h1>
           </div>
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
-            Gerencie e publique aulas para as mentoradas — elas aparecem no portal de cada uma.
+            Gerencie e publique as aulas gravadas do curso Seja Incomum — aparecem no portal das extraordinárias.
           </p>
         </div>
         <button className="btn-gold" onClick={() => setShowForm(!showForm)} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>

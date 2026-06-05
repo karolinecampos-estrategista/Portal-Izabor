@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Flame, Play, ChevronDown, ChevronUp, BookHeart, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/hooks/usePerfil";
+import BloqueadoPorProduto from "@/components/BloqueadoPorProduto";
 
 type Devocional = {
   id: string;
@@ -17,6 +19,7 @@ type Devocional = {
 };
 
 export default function DevocionalMentoradaPage() {
+  const perfil = usePerfil();
   const [devocionais, setDevocionais] = useState<Devocional[]>([]);
   const [nomeMentorada, setNomeMentorada] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export default function DevocionalMentoradaPage() {
     return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
   }
 
-  if (carregando) {
+  if (carregando || perfil.carregando) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, gap: 10, color: "var(--text-muted)" }}>
         <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
@@ -65,6 +68,7 @@ export default function DevocionalMentoradaPage() {
   }
 
   return (
+    <BloqueadoPorProduto produto="seja_incomum" ativo={!!perfil.produtosAtivos?.seja_incomum}>
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -166,5 +170,6 @@ export default function DevocionalMentoradaPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
+    </BloqueadoPorProduto>
   );
 }

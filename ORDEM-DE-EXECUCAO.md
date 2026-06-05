@@ -336,7 +336,7 @@ npx vercel env add RESEND_API_KEY production --scope izabor-cruz-projetos-projec
 Quando tudo estiver testado:
 
 1. **Enviar as credenciais de acesso:**
-   - URL: https://projeto-iza.vercel.app
+   - URL: https://projeto-iza-nine.vercel.app
    - Login admin: `izaborcruzprojetos@gmail.com`
    - Senha: a senha definida (orientar a trocar após o primeiro acesso)
 

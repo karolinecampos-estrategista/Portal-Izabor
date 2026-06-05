@@ -88,7 +88,7 @@ function horaAtual() {
 const FORM_VAZIO = { titulo: "", personagem: "", categoria: "Mulheres" as Categoria, versiculo: "" };
 
 export default function Estudos() {
-  const [estudos, setEstudos] = useState<Estudo[]>(ESTUDOS_INICIAL);
+  const [estudos, setEstudos] = useState<Estudo[]>([]);
   const [filtroCategoria, setFiltroCategoria] = useState<Categoria | "Todos">("Todos");
   const [expandido, setExpandido] = useState<number | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);

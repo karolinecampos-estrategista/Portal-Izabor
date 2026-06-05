@@ -23,7 +23,7 @@ const ORACOES_INICIAL: Oracao[] = [
     data: "24 Mai 2026", status: "Em Oracao",
   },
   {
-    id: 2, titulo: "Pelas Mentorandas",
+    id: 2, titulo: "Pelas Mentoradas",
     proposito: "Protecao, foco e avanco de cada mulher no programa",
     texto: "Senhor, cada mulher que confiou a mim um pedaco da sua historia, cobre com Tua graca. Que elas nao desistam quando o processo for duro. Que o que planto em cada sessao caia em terra boa e produza fruto.",
     data: "22 Mai 2026", status: "Em Oracao",
@@ -63,7 +63,7 @@ function dataAtual() {
 const FORM_VAZIO = { titulo: "", proposito: "", texto: "", status: "Em Oracao" as StatusOracao };
 
 export default function Oracoes() {
-  const [oracoes, setOracoes] = useState<Oracao[]>(ORACOES_INICIAL);
+  const [oracoes, setOracoes] = useState<Oracao[]>([]);
   const [filtroStatus, setFiltroStatus] = useState<StatusOracao | "Todas">("Todas");
   const [expandida, setExpandida] = useState<number | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -147,7 +147,7 @@ export default function Oracoes() {
           <div style={{ display: "grid", gap: 12 }}>
             <div>
               <label style={labelStyle}>Titulo *</label>
-              <input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} style={inputStyle} placeholder="Ex: Visao do ministerio, Pelas mentorandas..." />
+              <input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} style={inputStyle} placeholder="Ex: Visao do ministerio, Pelas mentoradas..." />
             </div>
             <div>
               <label style={labelStyle}>Proposito desta oracao</label>

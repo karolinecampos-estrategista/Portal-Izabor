@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   BookHeart,
+  Crown,
   Users,
   CalendarDays,
   PenLine,
@@ -29,6 +30,9 @@ import {
   Activity,
   FileText,
   Stethoscope,
+  Flame,
+  Settings,
+  CalendarPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -48,35 +52,49 @@ const sections = [
     ],
   },
   {
-    label: "Mentoradas",
+    label: "Espiritual",
     items: [
-      { href: "/dashboard-mentorandas", icon: LayoutGrid, label: "Dashboard" },
-      { href: "/mentorandas", icon: Users, label: "Cadastro" },
-      { href: "/aulas-bw", icon: PlaySquare, label: "Aulas BW" },
-      { href: "/devocionais", icon: BookHeart, label: "Devocionais" },
-      { href: "/desafios", icon: Trophy, label: "Desafios" },
-      { href: "/tarefas-mentoradas", icon: ListTodo, label: "Tarefas" },
-      { href: "/depoimentos-admin", icon: Heart, label: "Depoimentos" },
-      { href: "/chat-admin", icon: MessageCircle, label: "Chat" },
-      { href: "/sessoes", icon: ClipboardList, label: "Sessões" },
-      { href: "/checkin", icon: Activity, label: "Check-in Semanal" },
-      { href: "/planos", icon: FileText, label: "Planos de Ação" },
-      { href: "/diagnosticos", icon: Stethoscope, label: "Diagnósticos" },
-      { href: "/financeiro", icon: TrendingUp, label: "Financeiro" },
+      { href: "/estudos", icon: BookOpen, label: "Estudos Biblicos" },
+      { href: "/oracoes", icon: Heart, label: "Oracoes" },
     ],
   },
   {
     label: "Produtos",
     items: [
-      { href: "/box-livro", icon: Users, label: "Box · Compradores" },
-      { href: "/box-livro/conteudo", icon: Package, label: "Box · Conteúdo" },
+      { href: "/seja-incomum",         icon: Crown,       label: "SI · Cadastro" },
+      { href: "/aulas-bw",             icon: PlaySquare,  label: "SI · Aulas" },
+      { href: "/box-livro",            icon: BookOpen,    label: "Livro · Compradores" },
+      { href: "/box-livro/conteudo",   icon: FileText,    label: "Livro · Conteúdo" },
+      { href: "/eventos",              icon: CalendarPlus,label: "Eventos · Cadastro" },
     ],
   },
   {
-    label: "Espiritual",
+    label: "Club BW",
     items: [
-      { href: "/estudos", icon: BookOpen, label: "Estudos Biblicos" },
-      { href: "/oracoes", icon: Heart, label: "Oracoes" },
+      { href: "/club-bw",               icon: Heart,        label: "Cadastro" },
+      { href: "/dashboard-mentorandas", icon: LayoutGrid,   label: "Dashboard" },
+      { href: "/diagnosticos",          icon: Stethoscope,  label: "Diagnósticos" },
+      { href: "/checkin",               icon: Activity,     label: "Check-in Semanal" },
+      { href: "/sessoes",               icon: ClipboardList,label: "Sessões" },
+      { href: "/planos",                icon: FileText,     label: "Planos de Ação" },
+      { href: "/devocionais",           icon: BookHeart,    label: "Devocionais" },
+      { href: "/desafios",              icon: Trophy,       label: "Desafios" },
+      { href: "/tarefas-mentoradas",    icon: ListTodo,     label: "Tarefas" },
+      { href: "/depoimentos-admin",     icon: Heart,        label: "Depoimentos" },
+      { href: "/chat-admin",            icon: MessageCircle,label: "Chat" },
+    ],
+  },
+  {
+    label: "Financeiro",
+    items: [
+      { href: "/financeiro", icon: TrendingUp, label: "Visão Financeira" },
+    ],
+  },
+  {
+    label: "Conta",
+    items: [
+      { href: "/usuarios",      icon: Users,    label: "Acessos · Extraordinárias" },
+      { href: "/configuracoes", icon: Settings, label: "Configurações" },
     ],
   },
 ];
@@ -98,7 +116,9 @@ export default function Sidebar() {
         className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4"
         style={{ background: "var(--sidebar-bg)", borderBottom: "1px solid var(--sidebar-border)", height: 52 }}
       >
-        <img src="/logo-bw.jpeg" alt="Build Woman" style={{ height: 36, width: 36, objectFit: "cover", borderRadius: 6 }} />
+        <div style={{ width: 36, height: 36, background: "#000", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+          <img src="/bw1.jpeg" alt="Build Woman" style={{ height: 36, width: 36, objectFit: "contain", mixBlendMode: "screen" }} />
+        </div>
         <button onClick={() => setOpen(!open)} style={{ color: "rgba(240,240,240,0.7)", background: "none", border: "none", cursor: "pointer" }}>
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -122,9 +142,9 @@ export default function Sidebar() {
             style={{ padding: "20px 16px 18px", borderBottom: "1px solid var(--sidebar-border)", flexShrink: 0 }}
           >
             <img
-              src="/logo-bw.jpeg"
+              src="/bw1.jpeg"
               alt="Build Woman"
-              style={{ width: 130, height: 130, objectFit: "cover", borderRadius: 12, display: "block" }}
+              style={{ width: 140, height: 140, objectFit: "contain", display: "block", mixBlendMode: "screen" }}
             />
           </div>
 
