@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Heart, Plus, X, MessageCircle, Instagram, Trash2,
   CheckCircle2, ChevronDown, ChevronUp, Pencil, Loader2, Mail,
+  Sunrise, Upload, ImageIcon,
 } from "lucide-react";
 import ProdutosAcesso from "@/components/ProdutosAcesso";
+import { supabase } from "@/lib/supabase";
 
 type StatusAcesso = "ativo" | "encerrado" | "cancelado";
 
@@ -71,6 +73,12 @@ const PRODUTOS_OPCOES = [
 
 type AvisoAcesso = { nome: string; email: string; conviteEnviado: boolean; mensagem: string; linkAcesso?: string; slug?: string };
 
+interface MeuInicioData {
+  foto_inicio: string | null;
+  foto_atual: string | null;
+  mensagem: string | null;
+}
+
 export default function ClubBWCompradores() {
   const [compradoras, setCompradoras] = useState<Compradora[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -84,11 +92,67 @@ export default function ClubBWCompradores() {
   const [salvando, setSalvando] = useState(false);
   const [avisoAcesso, setAvisoAcesso] = useState<AvisoAcesso | null>(null);
 
+  // Meu Começo
+  const [meuInicio, setMeuInicio] = useState<Record<string, MeuInicioData>>({});
+  const [editandoInicio, setEditandoInicio] = useState<string | null>(null);
+  const [inicioForm, setInicioForm] = useState<MeuInicioData>({ foto_inicio: null, foto_atual: null, mensagem: null });
+  const [uploadandoInicio, setUploadandoInicio] = useState(false);
+  const [salvandoInicio, setSalvandoInicio] = useState(false);
+  const fileInicioRef = useRef<HTMLInputElement>(null);
+  const fileAtualRef = useRef<HTMLInputElement>(null);
+  const [tokenAdmin, setTokenAdmin] = useState<string | null>(null);
+
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setTokenAdmin(session.access_token);
+    });
     fetch("/api/club-bw")
       .then(r => r.json())
       .then(d => { setCompradoras(Array.isArray(d) ? d : []); setCarregando(false); });
   }, []);
+
+  async function carregarMeuInicio(mentoradaId: string) {
+    if (meuInicio[mentoradaId] !== undefined) return;
+    if (!tokenAdmin) return;
+    const res = await fetch(`/api/meu-inicio?mentorada_id=${mentoradaId}`, {
+      headers: { Authorization: `Bearer ${tokenAdmin}` },
+    });
+    const data = res.ok ? await res.json() : null;
+    setMeuInicio(prev => ({ ...prev, [mentoradaId]: data ?? { foto_inicio: null, foto_atual: null, mensagem: null } }));
+  }
+
+  async function uploadFoto(file: File, campo: "foto_inicio" | "foto_atual") {
+    if (!tokenAdmin) return;
+    setUploadandoInicio(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("pasta", "fotos");
+    const res = await fetch("/api/upload-foto", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tokenAdmin}` },
+      body: fd,
+    });
+    setUploadandoInicio(false);
+    if (!res.ok) return;
+    const { url } = await res.json();
+    setInicioForm(prev => ({ ...prev, [campo]: url }));
+  }
+
+  async function salvarMeuInicio(mentoradaId: string) {
+    if (!tokenAdmin) return;
+    setSalvandoInicio(true);
+    const res = await fetch("/api/meu-inicio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenAdmin}` },
+      body: JSON.stringify({ mentorada_id: mentoradaId, ...inicioForm }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setMeuInicio(prev => ({ ...prev, [mentoradaId]: data }));
+    }
+    setEditandoInicio(null);
+    setSalvandoInicio(false);
+  }
 
   function toggleProduto(key: string) {
     setFormProdutos(prev =>
@@ -400,7 +464,7 @@ export default function ClubBWCompradores() {
             const aberto = detalhe?.id === c.id;
             return (
               <div key={c.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", cursor: "pointer" }} onClick={() => setDetalhe(aberto ? null : c)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", cursor: "pointer" }} onClick={() => { const abrindo = !aberto; setDetalhe(abrindo ? c : null); if (abrindo) carregarMeuInicio(c.id); }}>
                   <div className="avatar" style={{ width: 38, height: 38, background: "rgba(167,139,250,0.15)", color: "#a78bfa", fontSize: 13, flexShrink: 0 }}>
                     {c.nome.split(" ").map(n => n[0]).join("").slice(0,2)}
                   </div>
@@ -565,6 +629,110 @@ export default function ClubBWCompradores() {
                         <div style={{ gridColumn: "1 / -1" }}>
                           <ProdutosAcesso email={c.email} nome={c.nome} defaultProduto="club_bw" />
                         </div>
+
+                        {/* Meu Começo */}
+                        <div style={{ gridColumn: "1 / -1", padding: "16px", background: "rgba(167,139,250,0.04)", border: "1px solid rgba(167,139,250,0.15)", borderRadius: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <Sunrise size={13} style={{ color: "#a78bfa" }} />
+                              <span style={{ fontSize: 11, fontWeight: 700, color: "#a78bfa", textTransform: "uppercase", letterSpacing: "0.08em" }}>Meu Começo</span>
+                            </div>
+                            {editandoInicio !== c.id && (
+                              <button
+                                onClick={() => { setEditandoInicio(c.id); setInicioForm(meuInicio[c.id] ?? { foto_inicio: null, foto_atual: null, mensagem: null }); }}
+                                style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.25)", color: "#a78bfa", fontSize: 11, cursor: "pointer", fontWeight: 700 }}
+                              >
+                                <Pencil size={10} /> {meuInicio[c.id]?.foto_inicio ? "Editar" : "Adicionar"}
+                              </button>
+                            )}
+                          </div>
+
+                          {editandoInicio === c.id ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                              {/* Upload fotos */}
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                                {/* Foto início */}
+                                <div>
+                                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>Foto do Começo (antes)</p>
+                                  <input ref={fileInicioRef} type="file" accept="image/*" style={{ display: "none" }}
+                                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadFoto(f, "foto_inicio"); }} />
+                                  <div
+                                    onClick={() => fileInicioRef.current?.click()}
+                                    style={{ width: "100%", aspectRatio: "1", borderRadius: 8, border: "1px dashed rgba(167,139,250,0.4)", background: inicioForm.foto_inicio ? "none" : "rgba(167,139,250,0.05)", cursor: "pointer", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}
+                                  >
+                                    {inicioForm.foto_inicio
+                                      ? <img src={inicioForm.foto_inicio} alt="início" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                      : <div style={{ textAlign: "center" }}><Upload size={18} style={{ color: "#a78bfa", marginBottom: 4 }} /><p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>Clique para subir</p></div>
+                                    }
+                                    {uploadandoInicio && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 size={20} style={{ color: "#a78bfa", animation: "spin 0.8s linear infinite" }} /></div>}
+                                  </div>
+                                </div>
+                                {/* Foto atual */}
+                                <div>
+                                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>Foto Atual (depois)</p>
+                                  <input ref={fileAtualRef} type="file" accept="image/*" style={{ display: "none" }}
+                                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadFoto(f, "foto_atual"); }} />
+                                  <div
+                                    onClick={() => fileAtualRef.current?.click()}
+                                    style={{ width: "100%", aspectRatio: "1", borderRadius: 8, border: "1px dashed rgba(167,139,250,0.4)", background: inicioForm.foto_atual ? "none" : "rgba(167,139,250,0.05)", cursor: "pointer", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}
+                                  >
+                                    {inicioForm.foto_atual
+                                      ? <img src={inicioForm.foto_atual} alt="atual" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                      : <div style={{ textAlign: "center" }}><Upload size={18} style={{ color: "#a78bfa", marginBottom: 4 }} /><p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>Clique para subir</p></div>
+                                    }
+                                    {uploadandoInicio && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 size={20} style={{ color: "#a78bfa", animation: "spin 0.8s linear infinite" }} /></div>}
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Mensagem */}
+                              <div>
+                                <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4, fontWeight: 600 }}>Mensagem para a mentorada</p>
+                                <textarea
+                                  value={inicioForm.mensagem ?? ""}
+                                  onChange={e => setInicioForm(prev => ({ ...prev, mensagem: e.target.value || null }))}
+                                  rows={3}
+                                  placeholder="Ex: Você entrou em [mês] com [desafio]. Olha até onde você chegou..."
+                                  style={{ width: "100%", padding: "9px 12px", fontSize: 12, borderRadius: 8, resize: "vertical", background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text)" }}
+                                />
+                              </div>
+                              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                                <button className="btn-ghost" style={{ fontSize: 11 }} onClick={() => setEditandoInicio(null)}>Cancelar</button>
+                                <button
+                                  onClick={() => salvarMeuInicio(c.id)}
+                                  disabled={salvandoInicio || uploadandoInicio}
+                                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 7, background: "rgba(167,139,250,0.15)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                                >
+                                  {salvandoInicio ? <Loader2 size={11} style={{ animation: "spin 0.8s linear infinite" }} /> : null}
+                                  Salvar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            meuInicio[c.id]?.foto_inicio ? (
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                                <div>
+                                  <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Começo</p>
+                                  <img src={meuInicio[c.id].foto_inicio!} alt="foto início" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
+                                </div>
+                                <div>
+                                  <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Atual</p>
+                                  {meuInicio[c.id].foto_atual
+                                    ? <img src={meuInicio[c.id].foto_atual!} alt="foto atual" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
+                                    : <div style={{ width: "100%", aspectRatio: "1", borderRadius: 8, border: "1px dashed var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}><ImageIcon size={18} style={{ color: "var(--text-muted)" }} /></div>
+                                  }
+                                </div>
+                                {meuInicio[c.id].mensagem && (
+                                  <div style={{ gridColumn: "1 / -1" }}>
+                                    <p style={{ fontSize: 12, color: "var(--text-soft)", fontStyle: "italic", margin: 0, lineHeight: 1.6 }}>&ldquo;{meuInicio[c.id].mensagem}&rdquo;</p>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Nenhuma foto adicionada ainda. Clique em "Adicionar" para registrar o começo desta mentorada.</p>
+                            )
+                          )}
+                        </div>
+
                         <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
                           <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setEditando({ ...c })}><Pencil size={12} /> Editar</button>
                           <button style={{ fontSize: 12, color: "#fca5a5", background: "none", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 6, padding: "5px 12px", cursor: "pointer" }} onClick={() => excluir(c.id)}><Trash2 size={12} /> Excluir</button>

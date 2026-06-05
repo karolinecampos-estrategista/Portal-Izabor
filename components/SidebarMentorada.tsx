@@ -47,14 +47,7 @@ function buildSections(p: Record<string, boolean>): Section[] {
     bloqueado: !p.seja_incomum,
     linkAquisicao: "https://izaborcruz.com.br/sejaincomum/",
     items: [
-      { href: "/mentorada/aulas",      icon: PlaySquare,    label: "Aulas" },
-      { href: "/mentorada/devocional", icon: BookHeart,     label: "Devocional" },
-      { href: "/mentorada/plano",      icon: FileText,      label: "Meu Plano de Ação" },
-      { href: "/mentorada/tarefas",    icon: CheckSquare,   label: "Minhas Tarefas" },
-      { href: "/mentorada/jornada",    icon: Trophy,        label: "Minha Jornada" },
-      { href: "/mentorada/meu-inicio", icon: Sunrise,       label: "Meu Começo" },
-      { href: "/mentorada/diagnostico",icon: Stethoscope,   label: "Meu Diagnóstico" },
-      { href: "/mentorada/checkin",    icon: Activity,      label: "Check-in Semanal" },
+      { href: "/mentorada/aulas", icon: PlaySquare, label: "Aulas" },
     ],
   });
 
@@ -71,6 +64,7 @@ function buildSections(p: Record<string, boolean>): Section[] {
       { href: "/mentorada/tarefas",        icon: CheckSquare,   label: "Minhas Tarefas" },
       { href: "/mentorada/devocional",     icon: BookHeart,     label: "Devocional" },
       { href: "/mentorada/jornada",        icon: Trophy,        label: "Minha Jornada" },
+      { href: "/mentorada/meu-inicio",     icon: Sunrise,       label: "Meu Começo" },
       { href: "/mentorada/depoimentos",    icon: Heart,         label: "Depoimentos" },
       { href: "/mentorada/chat",           icon: MessageCircle, label: "Chat" },
     ],
