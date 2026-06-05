@@ -54,7 +54,7 @@ const PRODUTOS = [
       "Debate ao vivo com reflexão profunda",
     ],
     link: null,
-    lancamento: "Lançamento dia 10/10 · No evento presencial",
+    lancamento: "Lançamento em breve",
   },
   {
     chave: "evento",
