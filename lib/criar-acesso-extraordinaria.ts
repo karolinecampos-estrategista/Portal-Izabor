@@ -14,16 +14,20 @@ export async function gerarSlugUnico(nome: string): Promise<string> {
   const partes = nome.trim().split(/\s+/).map(normalizarTexto).filter(Boolean);
   const primeiro = partes[0] ?? "bw";
   const ultimo   = partes[partes.length - 1] ?? "";
+  const iniciais = partes.map(p => p[0]).join("");
+  const multiParte = partes.length > 1 && primeiro !== ultimo;
 
-  const candidatos = [
-    partes.map(p => p[0]).join(""),                            // iniciais: "as"
-    primeiro,                                                   // primeiro nome: "ana"
-    primeiro + (ultimo[0] ?? ""),                              // nome + inicial sobrenome: "anas"
-    primeiro + ultimo.slice(0, 2),                             // nome + 2 letras: "anasi"
-    primeiro + ultimo,                                          // nome + sobrenome completo: "anasilva"
-  ].filter(Boolean);
+  // Candidatos do mais descritivo/único para o mais curto.
+  // Ordem importa: nomes parecidos divergem cedo e ficam identificáveis.
+  const raw = [
+    multiParte ? primeiro + ultimo : "",          // "anasilva" / "anasantos"
+    multiParte ? primeiro + (ultimo[0] ?? "") : "",// "anas"
+    multiParte ? primeiro + ultimo.slice(0, 2) : "",// "anasa"
+    iniciais,                                      // "as" ou "i" (nome único)
+    primeiro,                                      // "ana" / "izabor"
+  ];
+  const candidatos = [...new Set(raw.filter(Boolean))];
 
-  // Busca slugs já existentes com esses candidatos
   const { data: existentes } = await supabaseAdmin
     .from("mentoradas")
     .select("slug")
@@ -35,10 +39,10 @@ export async function gerarSlugUnico(nome: string): Promise<string> {
     if (!usados.has(c)) return c;
   }
 
-  // Fallback com número incremental
+  // Fallback: iniciais + N (ex: "as2", "as3") — diferencia melhor nomes similares
   let i = 2;
   while (true) {
-    const slug = `${primeiro}${i}`;
+    const slug = `${iniciais}${i}`;
     const { data } = await supabaseAdmin.from("mentoradas").select("slug").eq("slug", slug).maybeSingle();
     if (!data) return slug;
     i++;

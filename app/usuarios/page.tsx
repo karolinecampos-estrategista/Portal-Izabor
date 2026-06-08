@@ -15,8 +15,13 @@ import {
   XCircle,
   KeyRound,
   Loader2,
+  Copy,
+  Check,
+  Link2,
 } from "lucide-react";
 import ProdutosAcesso from "@/components/ProdutosAcesso";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://projeto-iza-nine.vercel.app";
 
 interface Usuario {
   id: string;
@@ -25,6 +30,7 @@ interface Usuario {
   tipo: string;
   acesso: "mentoria" | "livro" | "ambos" | null;
   produtos_ativos: Record<string, unknown>;
+  slug: string | null;
   bloqueado: boolean;
   ultimo_acesso: string | null;
   criado_em: string;
@@ -65,6 +71,8 @@ export default function UsuariosAdmin() {
   const [expandido, setExpandido] = useState<string | null>(null);
   const [acao, setAcao] = useState<{ id: string; tipo: string } | null>(null);
   const [msg, setMsg] = useState<{ id: string; texto: string; ok: boolean } | null>(null);
+  const [copiadoSlug, setCopiadoSlug] = useState<string | null>(null);
+  const [gerandoSlug, setGerandoSlug] = useState<string | null>(null);
 
   async function carregar() {
     setCarregando(true);
@@ -101,6 +109,24 @@ export default function UsuariosAdmin() {
       setMsg({ id, texto: json.error ?? "Erro ao executar ação.", ok: false });
     }
     setAcao(null);
+  }
+
+  function copiarSlug(id: string, slug: string) {
+    navigator.clipboard.writeText(`${SITE_URL}/portal/${slug}`).then(() => {
+      setCopiadoSlug(id);
+      setTimeout(() => setCopiadoSlug(null), 2000);
+    });
+  }
+
+  async function gerarSlug(id: string, nome: string | null) {
+    setGerandoSlug(id);
+    const res = await fetch("/api/usuarios-admin", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, acao: "gerar_slug", nome: nome ?? "" }),
+    });
+    if (res.ok) await carregar();
+    setGerandoSlug(null);
   }
 
   const ativos = usuarios.filter((u) => !u.bloqueado).length;
@@ -249,7 +275,7 @@ export default function UsuariosAdmin() {
                 {aberto && (
                   <div style={{ borderTop: "1px solid var(--border)", padding: "16px" }}>
                     {/* Info detalhada */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 12 }}>
                       <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: "10px 12px" }}>
                         <p style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>E-mail</p>
                         <p style={{ fontSize: 12, color: "var(--text)", margin: 0, wordBreak: "break-all" }}>{u.email}</p>
@@ -274,6 +300,42 @@ export default function UsuariosAdmin() {
                       </div>
                     </div>
 
+                    {/* Link exclusivo */}
+                    <div style={{ background: u.slug ? "rgba(134,239,172,0.05)" : "rgba(255,255,255,0.02)", border: `1px solid ${u.slug ? "rgba(134,239,172,0.2)" : "var(--border)"}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: u.slug ? 6 : 0 }}>
+                        <Link2 size={12} style={{ color: u.slug ? "#86efac" : "var(--text-muted)", flexShrink: 0 }} />
+                        <p style={{ fontSize: 10, color: u.slug ? "#86efac" : "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: 0, fontWeight: 700 }}>
+                          {u.slug ? `Link exclusivo · /portal/${u.slug}` : "Link exclusivo · não gerado ainda"}
+                        </p>
+                      </div>
+                      {u.slug ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <code style={{ fontSize: 11, color: "var(--text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {SITE_URL}/portal/{u.slug}
+                          </code>
+                          <button
+                            onClick={() => copiarSlug(u.id, u.slug!)}
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid", whiteSpace: "nowrap",
+                              background: copiadoSlug === u.id ? "rgba(134,239,172,0.15)" : "rgba(255,255,255,0.05)",
+                              borderColor: copiadoSlug === u.id ? "rgba(134,239,172,0.4)" : "var(--border)",
+                              color: copiadoSlug === u.id ? "#86efac" : "var(--text-muted)",
+                            }}
+                          >
+                            {copiadoSlug === u.id ? <><Check size={10} /> Copiado</> : <><Copy size={10} /> Copiar link</>}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => gerarSlug(u.id, u.nome)}
+                          disabled={gerandoSlug === u.id}
+                          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid rgba(201,168,76,0.3)", background: "rgba(201,168,76,0.08)", color: "var(--gold)", marginTop: 4, opacity: gerandoSlug === u.id ? 0.6 : 1 }}
+                        >
+                          {gerandoSlug === u.id ? <Loader2 size={11} style={{ animation: "spin 1s linear infinite" }} /> : <Link2 size={11} />}
+                          {gerandoSlug === u.id ? "Gerando…" : "Gerar link exclusivo"}
+                        </button>
+                      )}
+                    </div>
+
                     {/* Alterar tipo de acesso */}
                     <div style={{ marginBottom: 14 }}>
                       <p style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Alterar tipo de acesso</p>
@@ -294,6 +356,26 @@ export default function UsuariosAdmin() {
                             {acessoCfg[a].label}
                           </button>
                         ))}
+
+                        {/* Club BW toggle */}
+                        {(() => {
+                          const clubBwAtivo = !!u.produtos_ativos?.club_bw;
+                          return (
+                            <button
+                              onClick={() => executarAcao(u.id, "atualizar_acesso", { acesso_club_bw: !clubBwAtivo })}
+                              disabled={executando}
+                              style={{ padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
+                                background: clubBwAtivo ? "rgba(167,139,250,0.2)" : "transparent",
+                                color: clubBwAtivo ? "#a78bfa" : "var(--text-muted)",
+                                borderColor: clubBwAtivo ? "#a78bfa" : "var(--border)",
+                                opacity: executando ? 0.6 : 1,
+                              }}
+                            >
+                              {clubBwAtivo && <CheckCircle2 size={11} style={{ display: "inline", marginRight: 4 }} />}
+                              Club BW
+                            </button>
+                          );
+                        })()}
                       </div>
                     </div>
 

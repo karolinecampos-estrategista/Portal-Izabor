@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { gerarSlugUnico } from "@/lib/criar-acesso-extraordinaria";
 
 export async function GET() {
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
@@ -9,7 +10,7 @@ export async function GET() {
   // Busca mentoradas com todos os campos de acesso (legado user_id e novo id)
   const { data: mentoradas } = await supabaseAdmin
     .from("mentoradas")
-    .select("id, user_id, acesso, produtos_ativos, mostrar_financeiro, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento");
+    .select("id, user_id, acesso, produtos_ativos, mostrar_financeiro, acesso_seja_incomum, acesso_club_bw, acesso_box_livro, acesso_evento, slug");
 
   const perfisMap = new Map((perfis ?? []).map((p: Record<string, unknown>) => [p.id as string, p]));
 
@@ -41,6 +42,7 @@ export async function GET() {
         tipo: (perfil as Record<string, unknown>).tipo ?? "mentorada",
         acesso: m.acesso ?? null,
         produtos_ativos: produtosAtivos,
+        slug: (m.slug as string | null) ?? null,
         bloqueado: !!u.banned_until,
         ultimo_acesso: u.last_sign_in_at ?? null,
         criado_em: u.created_at,
@@ -66,9 +68,11 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (acao === "atualizar_acesso") {
+    const { acesso_club_bw } = body;
     const update: Record<string, unknown> = {};
     if (acesso !== undefined) update.acesso = acesso;
     if (produtosAtivos !== undefined) update.produtos_ativos = produtosAtivos;
+    if (acesso_club_bw !== undefined) update.acesso_club_bw = acesso_club_bw;
 
     // Tenta pelo id (novo sistema), cai no user_id (legado) se não encontrar
     const { error } = await supabaseAdmin
@@ -77,6 +81,27 @@ export async function PATCH(req: NextRequest) {
       .or(`id.eq.${id},user_id.eq.${id}`);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (acao === "gerar_slug") {
+    const { data: m } = await supabaseAdmin
+      .from("mentoradas")
+      .select("nome, slug")
+      .or(`id.eq.${id},user_id.eq.${id}`)
+      .maybeSingle();
+
+    if (m?.slug) return NextResponse.json({ ok: true, slug: m.slug });
+
+    const nomeBase = (m?.nome as string | null) ?? body.nome ?? id;
+    const slug = await gerarSlugUnico(nomeBase);
+
+    const { error } = await supabaseAdmin
+      .from("mentoradas")
+      .update({ slug })
+      .or(`id.eq.${id},user_id.eq.${id}`);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, slug });
   }
 
   if (acao === "resetar_senha") {
