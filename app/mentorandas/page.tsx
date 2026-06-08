@@ -163,11 +163,22 @@ export default function Mentorandas() {
       .then(d => { if (Array.isArray(d)) setDevocionais(d.filter((x: { publicado: boolean }) => x.publicado)); });
   }, []);
 
-  function criarLogin(m: Mentoranda) {
-    setMentorandas((prev) => prev.map((x) => x.id === m.id ? { ...x, loginCriado: true } : x));
-    setSelecionada((prev) => prev ? { ...prev, loginCriado: true } : prev);
+  async function criarLogin(m: Mentoranda) {
     setLoginEnviado(m.id);
-    setTimeout(() => setLoginEnviado(null), 3000);
+    try {
+      const res = await fetch("/api/mentoradas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: m.id, reenviarConvite: true }),
+      });
+      const data = await res.json();
+      if (data.loginCriado || data.ok) {
+        setMentorandas((prev) => prev.map((x) => x.id === m.id ? { ...x, loginCriado: true } : x));
+        setSelecionada((prev) => prev ? { ...prev, loginCriado: true } : prev);
+      }
+    } finally {
+      setTimeout(() => setLoginEnviado(null), 3000);
+    }
   }
 
   async function salvarCampo(id: number, campo: string, valor: unknown) {

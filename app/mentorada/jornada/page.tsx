@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Trophy, CheckSquare, Loader2, Target } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/hooks/usePerfil";
+import BloqueadoPorProduto from "@/components/BloqueadoPorProduto";
 
 type Desafio = {
   id: string;
@@ -11,6 +13,7 @@ type Desafio = {
   pilar: string;
   prazo: string | null;
   destino: string;
+  mentorada_id: string | null;
   mentorada_nome: string | null;
 };
 
@@ -38,31 +41,35 @@ function formatPrazo(iso: string) {
 }
 
 export default function Jornada() {
+  const perfil = usePerfil();
   const [desafios, setDesafios] = useState<Desafio[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [feitos, setFeitos] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      let mentoradaId = "";
       let nomeMentorada = "";
       if (session) {
         const { data: m } = await supabase
           .from("mentoradas")
-          .select("nome")
-          .eq("user_id", session.user.id)
-          .single();
-        if (m) nomeMentorada = m.nome;
+          .select("id, nome")
+          .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
+          .maybeSingle();
+        if (m) { mentoradaId = m.id; nomeMentorada = m.nome; }
       }
 
       const res = await fetch("/api/desafios");
       const todos: Desafio[] = await res.json();
 
       const meus = Array.isArray(todos)
-        ? todos.filter(
-            (d) =>
-              d.destino === "todas-bw" ||
-              (d.destino === "individual" && d.mentorada_nome === nomeMentorada)
-          )
+        ? todos.filter((d) => {
+            if (d.destino === "todas-bw") return true;
+            if (d.destino !== "individual") return false;
+            // ID tem prioridade; cai para nome em desafios antigos sem mentorada_id
+            if (d.mentorada_id && mentoradaId) return d.mentorada_id === mentoradaId;
+            return d.mentorada_nome === nomeMentorada;
+          })
         : [];
 
       setDesafios(meus);
@@ -85,7 +92,7 @@ export default function Jornada() {
 
   const pilares = [...new Set(desafios.map((d) => d.pilar))];
 
-  if (carregando) {
+  if (perfil.carregando || carregando) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, gap: 10, color: "var(--text-muted)" }}>
         <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
@@ -95,6 +102,7 @@ export default function Jornada() {
   }
 
   return (
+    <BloqueadoPorProduto produto="club_bw" ativo={!!perfil.produtosAtivos?.club_bw}>
     <div style={{ maxWidth: 820, margin: "0 auto" }}>
 
       {/* Header */}
@@ -230,5 +238,6 @@ export default function Jornada() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
+    </BloqueadoPorProduto>
   );
 }

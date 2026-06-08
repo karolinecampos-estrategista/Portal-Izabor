@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-// GET — mentorada autenticada vê aprovados; sem token → só aprovados públicos
-// Admin (header X-Admin: true + token) vê todos
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "");
@@ -15,11 +13,33 @@ export async function GET(req: NextRequest) {
       : { data: null };
 
     if (perfil?.tipo === "admin") {
-      const { data } = await supabaseAdmin
+      const { data: depoimentos, error } = await supabaseAdmin
         .from("depoimentos")
-        .select("id, nome, programa, conteudo, conteudo_editado, tipo, status, criado_em, aprovado_em")
+        .select("id, mentorada_id, nome, programa, conteudo, conteudo_editado, tipo, status, criado_em, aprovado_em")
         .order("criado_em", { ascending: false });
-      return NextResponse.json(data ?? []);
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+      // Enrich with mentorada info
+      const ids = [...new Set(
+        (depoimentos ?? []).map((d: Record<string, unknown>) => d.mentorada_id as string).filter(Boolean)
+      )];
+
+      const mentoradasMap = new Map<string, Record<string, unknown>>();
+      if (ids.length > 0) {
+        const { data: ments } = await supabaseAdmin
+          .from("mentoradas")
+          .select("id, nome, email, acesso, cor")
+          .in("id", ids);
+        (ments ?? []).forEach((m: Record<string, unknown>) => mentoradasMap.set(m.id as string, m));
+      }
+
+      const enriched = (depoimentos ?? []).map((d: Record<string, unknown>) => ({
+        ...d,
+        mentorada: d.mentorada_id ? (mentoradasMap.get(d.mentorada_id as string) ?? null) : null,
+      }));
+
+      return NextResponse.json(enriched);
     }
   }
 
@@ -32,7 +52,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data ?? []);
 }
 
-// POST — mentorada autenticada envia depoimento
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "");
@@ -70,7 +89,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data);
 }
 
-// PATCH — admin aprova/rejeita/edita
 export async function PATCH(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "");
@@ -102,7 +120,6 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json(data);
 }
 
-// DELETE — admin remove
 export async function DELETE(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "");

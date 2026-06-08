@@ -7,6 +7,8 @@ import {
   CalendarDays, Sparkles, Loader2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/hooks/usePerfil";
+import BloqueadoPorProduto from "@/components/BloqueadoPorProduto";
 
 type TipoTarefa = "acao" | "reflexao" | "leitura" | "pratica";
 type StatusUI = "pendente" | "em-andamento" | "concluida";
@@ -16,6 +18,8 @@ interface Tarefa {
   titulo: string;
   descricao: string | null;
   tipo: TipoTarefa | null;
+  mentorada_id: string | null;
+  mentorada_nome: string | null;
   data_entrega: string | null;
   status: string;
   criado_em: string;
@@ -60,6 +64,7 @@ function diasRestantes(prazo: string): number {
 }
 
 export default function MinhasTarefas() {
+  const perfil = usePerfil();
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [nomeMentorada, setNomeMentorada] = useState("");
@@ -71,24 +76,32 @@ export default function MinhasTarefas() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       let nome = "";
+      let mentoradaId = "";
       if (session) {
         const { data: m } = await supabase
           .from("mentoradas")
-          .select("nome")
+          .select("id, nome")
           .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
           .maybeSingle();
-        if (m) { nome = m.nome; setNomeMentorada(nome); }
+        if (m) {
+          nome = m.nome;
+          mentoradaId = m.id;
+          setNomeMentorada(nome);
+        }
       }
 
       const res = await fetch("/api/tarefas");
       const todas: Tarefa[] = await res.json();
 
-      // Mostra tarefas globais (sem mentorada_nome) + as específicas dela
+      // Mostra tarefas globais (sem destinatário) + as específicas da aluna
+      // Aceita vínculo por ID (novo) ou por nome (legado)
       const minhas = Array.isArray(todas)
         ? todas
-            .filter((t: Tarefa & { mentorada_nome?: string | null }) =>
-              !t.mentorada_nome || t.mentorada_nome === nome
-            )
+            .filter((t) => {
+              if (!t.mentorada_id && !t.mentorada_nome) return true; // global
+              if (t.mentorada_id && mentoradaId) return t.mentorada_id === mentoradaId;
+              return t.mentorada_nome === nome; // fallback legado
+            })
             .map((t) => ({ ...t, anotacao: "" }))
         : [];
       setTarefas(minhas);
@@ -125,7 +138,7 @@ export default function MinhasTarefas() {
   const concluidas = tarefas.filter((t) => statusNormalizado(t) === "concluida").length;
   const pctConcluido = tarefas.length > 0 ? Math.round((concluidas / tarefas.length) * 100) : 0;
 
-  if (carregando) {
+  if (perfil.carregando || carregando) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, gap: 10, color: "var(--text-muted)" }}>
         <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
@@ -135,6 +148,7 @@ export default function MinhasTarefas() {
   }
 
   return (
+    <BloqueadoPorProduto produto="club_bw" ativo={!!perfil.produtosAtivos?.club_bw}>
     <div style={{ maxWidth: 820, margin: "0 auto", paddingBottom: 48 }}>
       <div style={{ marginBottom: 24 }}>
         <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
@@ -315,5 +329,6 @@ export default function MinhasTarefas() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
+    </BloqueadoPorProduto>
   );
 }

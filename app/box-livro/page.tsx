@@ -34,7 +34,7 @@ interface Compradora {
 const VARIANTES: Record<VarianteBox, { label: string; cor: string; bg: string }> = {
   "completo":       { label: "Box Completo",      cor: "#C9A84C", bg: "rgba(201,168,76,0.12)" },
   "so-livro":       { label: "Só o Livro",         cor: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
-  "devocional-30":  { label: "Devocional 30 dias", cor: "#86efac", bg: "rgba(134,239,172,0.12)" },
+  "devocional-30":  { label: "Livro + Acompanhamento", cor: "#86efac", bg: "rgba(134,239,172,0.12)" },
 };
 
 const ENTREGA_CONFIG: Record<StatusEntrega, { label: string; cor: string; bg: string; icon: typeof Package }> = {

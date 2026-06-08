@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Stethoscope, ArrowRight, ArrowLeft, CheckCircle, RotateCcw } from "lucide-react";
+import { Stethoscope, ArrowRight, ArrowLeft, CheckCircle, RotateCcw, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/hooks/usePerfil";
+import BloqueadoPorProduto from "@/components/BloqueadoPorProduto";
 
 const PERGUNTAS = [
   {
@@ -125,7 +127,11 @@ async function salvarDiagnostico(respostas: Record<string, string>, perfil: Perf
   const userId = session?.user?.id ?? null;
 
   const { data: mentorada } = userId
-    ? await supabase.from("mentoradas").select("nome, email, programa").eq("user_id", userId).single()
+    ? await supabase
+        .from("mentoradas")
+        .select("id, nome, email, programa")
+        .or(`user_id.eq.${userId},id.eq.${userId}`)
+        .maybeSingle()
     : { data: null };
 
   await fetch("/api/diagnosticos", {
@@ -133,6 +139,7 @@ async function salvarDiagnostico(respostas: Record<string, string>, perfil: Perf
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       user_id: userId,
+      mentorada_id: mentorada?.id ?? null,
       nome: mentorada?.nome ?? session?.user?.email?.split("@")[0] ?? "Mentorada",
       email: mentorada?.email ?? session?.user?.email ?? null,
       programa: mentorada?.programa ?? "Mentoria BW",
@@ -148,6 +155,7 @@ async function salvarDiagnostico(respostas: Record<string, string>, perfil: Perf
 }
 
 export default function DiagnosticoPage() {
+  const perfil = usePerfil();
   const [passo, setPasso] = useState(0);
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [concluido, setConcluido] = useState(false);
@@ -155,11 +163,24 @@ export default function DiagnosticoPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return;
+      const userId = session.user.id;
+
+      const { data: mentorada } = await supabase
+        .from("mentoradas")
+        .select("id")
+        .or(`user_id.eq.${userId},id.eq.${userId}`)
+        .maybeSingle();
+
+      const orClause = mentorada?.id
+        ? `user_id.eq.${userId},mentorada_id.eq.${mentorada.id}`
+        : `user_id.eq.${userId}`;
+
       const { data } = await supabase
         .from("diagnosticos")
         .select("id")
-        .eq("user_id", session.user.id)
-        .single();
+        .or(orClause)
+        .maybeSingle();
+
       if (data) setConcluido(true);
     });
   }, []);
@@ -193,37 +214,39 @@ export default function DiagnosticoPage() {
     setConcluido(false);
   }
 
+  if (perfil.carregando) return null;
+
   if (concluido) {
-    const perfil = calcularPerfil(respostas);
+    const perfilResultado = calcularPerfil(respostas);
     return (
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ width: 64, height: 64, borderRadius: "50%", background: `${perfil.cor}18`, border: `1px solid ${perfil.cor}40`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <CheckCircle size={28} style={{ color: perfil.cor }} />
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: `${perfilResultado.cor}18`, border: `1px solid ${perfilResultado.cor}40`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <CheckCircle size={28} style={{ color: perfilResultado.cor }} />
           </div>
           <p style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 8 }}>
             Seu diagnóstico
           </p>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: perfil.cor, margin: 0, lineHeight: 1.3 }}>
-            {perfil.titulo}
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: perfilResultado.cor, margin: 0, lineHeight: 1.3 }}>
+            {perfilResultado.titulo}
           </h1>
         </div>
 
-        <div className="card" style={{ padding: "24px", marginBottom: 16, background: "linear-gradient(135deg, #111111 0%, #161208 100%)", border: `1px solid ${perfil.cor}30` }}>
+        <div className="card" style={{ padding: "24px", marginBottom: 16, background: "linear-gradient(135deg, #111111 0%, #161208 100%)", border: `1px solid ${perfilResultado.cor}30` }}>
           <p style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.8, margin: "0 0 20px" }}>
-            {perfil.descricao}
+            {perfilResultado.descricao}
           </p>
-          <p style={{ fontSize: 13, fontStyle: "italic", color: perfil.cor, lineHeight: 1.6, margin: "0 0 20px" }}>
-            {perfil.mensagem}
+          <p style={{ fontSize: 13, fontStyle: "italic", color: perfilResultado.cor, lineHeight: 1.6, margin: "0 0 20px" }}>
+            {perfilResultado.mensagem}
           </p>
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
               O que vamos trabalhar juntas
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {perfil.foco.map((f, i) => (
+              {perfilResultado.foco.map((f, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: perfil.cor, flexShrink: 0 }} />
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: perfilResultado.cor, flexShrink: 0 }} />
                   <span style={{ fontSize: 13, color: "var(--text-soft)" }}>{f}</span>
                 </div>
               ))}
@@ -251,6 +274,7 @@ export default function DiagnosticoPage() {
   const progresso = Math.round(((passo + 1) / totalPassos) * 100);
 
   return (
+    <BloqueadoPorProduto produto="club_bw" ativo={!!perfil.produtosAtivos?.club_bw}>
     <div style={{ maxWidth: 600, margin: "0 auto" }}>
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -338,5 +362,6 @@ export default function DiagnosticoPage() {
         </button>
       </div>
     </div>
+    </BloqueadoPorProduto>
   );
 }

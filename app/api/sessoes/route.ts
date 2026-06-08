@@ -4,13 +4,20 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const mentoradaId = searchParams.get("mentorada_id");
+  const email = searchParams.get("email");
 
   let query = supabaseAdmin
     .from("sessoes")
     .select("*")
     .order("data", { ascending: false });
 
-  if (mentoradaId) query = query.eq("mentorada_id", mentoradaId);
+  if (mentoradaId) {
+    query = query.eq("mentorada_id", mentoradaId);
+  } else if (email) {
+    const { data: m } = await supabaseAdmin.from("mentoradas").select("id").eq("email", email).maybeSingle();
+    if (!m) return NextResponse.json([]);
+    query = query.eq("mentorada_id", m.id);
+  }
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -20,10 +27,22 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
+  let mentoradaId: string | null = body.mentorada_id ?? null;
+  if (!mentoradaId && (body.email || body.mentorada_nome)) {
+    if (body.email) {
+      const { data: m } = await supabaseAdmin.from("mentoradas").select("id").eq("email", body.email).maybeSingle();
+      if (m) mentoradaId = m.id;
+    }
+    if (!mentoradaId && body.mentorada_nome) {
+      const { data: m } = await supabaseAdmin.from("mentoradas").select("id").eq("nome", body.mentorada_nome).maybeSingle();
+      if (m) mentoradaId = m.id;
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from("sessoes")
     .insert({
-      mentorada_id: body.mentorada_id ?? null,
+      mentorada_id: mentoradaId,
       mentorada_nome: body.mentorada_nome,
       cor: body.cor ?? "#C9A84C",
       data: body.data,

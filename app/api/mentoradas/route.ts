@@ -19,18 +19,38 @@ export async function POST(req: NextRequest) {
   let userId: string | null = null;
   let loginCriado = false;
 
-  // Convite por e-mail via Supabase Auth
   if (body.email?.trim()) {
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      body.email.trim(),
-      {
-        data: { tipo: "mentorada", nome: body.nome },
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/mentorada`,
-      }
+    const email = body.email.trim();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+    // 1ª tentativa: invite (cria usuário + envia e-mail)
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      email,
+      { data: { tipo: "mentorada", nome: body.nome }, redirectTo: `${siteUrl}/acesso/definir-senha` }
     );
-    if (!authError && authData?.user) {
-      userId = authData.user.id;
+
+    if (!inviteError && inviteData?.user) {
+      userId = inviteData.user.id;
       loginCriado = true;
+    } else {
+      // 2ª tentativa: usuário já existe — localiza pelo e-mail
+      const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const existente = users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+      if (existente) {
+        userId = existente.id;
+        loginCriado = true;
+      } else {
+        // 3ª tentativa: cria sem enviar e-mail (mentorada vai redefinir senha depois)
+        const { data: novoUsuario, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: { tipo: "mentorada", nome: body.nome },
+        });
+        if (!createError && novoUsuario?.user) {
+          userId = novoUsuario.user.id;
+          loginCriado = true;
+        }
+      }
     }
   }
 
@@ -90,10 +110,58 @@ export async function DELETE(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-// PATCH — atualiza mentorada
+// PATCH — atualiza mentorada OU reenvia convite (quando body.reenviarConvite = true)
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { id, ...campos } = body;
+
+  // Re-envio de convite / criação de login
+  if (campos.reenviarConvite) {
+    const { data: m } = await supabaseAdmin.from("mentoradas").select("email, user_id, nome").eq("id", id).single();
+    if (!m?.email) return NextResponse.json({ error: "E-mail não cadastrado" }, { status: 400 });
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+    let newUserId: string | null = m.user_id ?? null;
+
+    if (!newUserId) {
+      // Tenta invite primeiro
+      const { data: inv, error: invErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(m.email, {
+        data: { tipo: "mentorada", nome: m.nome },
+        redirectTo: `${siteUrl}/acesso/definir-senha`,
+      });
+
+      if (!invErr && inv?.user) {
+        newUserId = inv.user.id;
+      } else {
+        // Usuário já existe — localiza pelo e-mail
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+        const existente = users.find((u) => u.email?.toLowerCase() === m.email!.toLowerCase());
+        if (existente) {
+          newUserId = existente.id;
+        } else {
+          // Cria sem e-mail
+          const { data: novo } = await supabaseAdmin.auth.admin.createUser({
+            email: m.email,
+            email_confirm: true,
+            user_metadata: { tipo: "mentorada", nome: m.nome },
+          });
+          if (novo?.user) newUserId = novo.user.id;
+        }
+      }
+    } else {
+      // Já tem user_id — só reenvia o e-mail de invite
+      await supabaseAdmin.auth.admin.inviteUserByEmail(m.email, {
+        data: { tipo: "mentorada", nome: m.nome },
+        redirectTo: `${siteUrl}/acesso/definir-senha`,
+      });
+    }
+
+    if (newUserId && !m.user_id) {
+      await supabaseAdmin.from("mentoradas").update({ user_id: newUserId, login_criado: true, convite_enviado: true }).eq("id", id);
+    }
+
+    return NextResponse.json({ ok: true, user_id: newUserId, loginCriado: !!newUserId });
+  }
 
   const { data, error } = await supabaseAdmin
     .from("mentoradas")

@@ -1,13 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Heart, CheckCircle2, X, Clock, Pencil, Trash2, Loader2, Send } from "lucide-react";
+import { Heart, CheckCircle2, X, Clock, Pencil, Trash2, Loader2, Send, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type StatusDepoimento = "pendente" | "aprovado" | "rejeitado";
 
+interface MentoradaInfo {
+  id: string;
+  nome: string;
+  email: string;
+  acesso: string;
+  cor: string | null;
+}
+
 interface Depoimento {
   id: string;
+  mentorada_id: string | null;
+  mentorada: MentoradaInfo | null;
   nome: string;
   programa: string | null;
   conteudo: string;
@@ -28,6 +38,12 @@ const STATUS_CFG = {
   pendente:  { label: "Pendente",  cor: "#fbbf24", bg: "rgba(251,191,36,0.1)"  },
   aprovado:  { label: "Aprovado",  cor: "#86efac", bg: "rgba(134,239,172,0.1)" },
   rejeitado: { label: "Rejeitado", cor: "#fca5a5", bg: "rgba(252,165,165,0.1)" },
+};
+
+const ACESSO_LABEL: Record<string, string> = {
+  mentoria: "Mentoria Individual",
+  livro: "Livro",
+  ambos: "Mentoria + Livro",
 };
 
 export default function DepoimentosAdmin() {
@@ -67,8 +83,8 @@ export default function DepoimentosAdmin() {
       body: JSON.stringify(body),
     });
     if (res.ok) {
-      const atualizado: Depoimento = await res.json();
-      setDepoimentos(prev => prev.map(d => d.id === id ? atualizado : d));
+      const atualizado = await res.json();
+      setDepoimentos(prev => prev.map(d => d.id === id ? { ...atualizado, mentorada: d.mentorada } : d));
     }
     setEditando(null);
     setSalvando(false);
@@ -131,17 +147,42 @@ export default function DepoimentosAdmin() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {filtrados.map(dep => (
             <div key={dep.id} className="card" style={{ padding: "20px 22px", border: `1px solid ${STATUS_CFG[dep.status].cor}30` }}>
-              {/* Topo */}
+
+              {/* Cabeçalho: status + data */}
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "0 0 2px" }}>{dep.nome}</p>
-                  {dep.programa && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>{dep.programa}</p>}
-                  <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>Enviado em {formatData(dep.criado_em)}</p>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  {/* Avatar da aluna */}
+                  <div style={{
+                    width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                    background: dep.mentorada?.cor ? dep.mentorada.cor + "22" : "rgba(201,168,76,0.12)",
+                    border: `1.5px solid ${dep.mentorada?.cor ?? "var(--gold-border)"}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, fontWeight: 700,
+                    color: dep.mentorada?.cor ?? "var(--gold)",
+                  }}>
+                    {dep.nome ? dep.nome.charAt(0).toUpperCase() : <User size={16} />}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "0 0 2px" }}>{dep.nome}</p>
+                    {dep.mentorada && (
+                      <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 1px" }}>
+                        {ACESSO_LABEL[dep.mentorada.acesso] ?? dep.mentorada.acesso} · {dep.mentorada.email}
+                      </p>
+                    )}
+                    {dep.programa && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>{dep.programa}</p>}
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>Enviado em {formatData(dep.criado_em)}</p>
+                  </div>
                 </div>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, color: STATUS_CFG[dep.status].cor, background: STATUS_CFG[dep.status].bg, flexShrink: 0 }}>
-                  {dep.status === "pendente" ? <Clock size={10} /> : dep.status === "aprovado" ? <CheckCircle2 size={10} /> : <X size={10} />}
-                  {STATUS_CFG[dep.status].label}
-                </span>
+
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, color: STATUS_CFG[dep.status].cor, background: STATUS_CFG[dep.status].bg }}>
+                    {dep.status === "pendente" ? <Clock size={10} /> : dep.status === "aprovado" ? <CheckCircle2 size={10} /> : <X size={10} />}
+                    {STATUS_CFG[dep.status].label}
+                  </span>
+                  {dep.aprovado_em && (
+                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Aprovado em {formatData(dep.aprovado_em)}</span>
+                  )}
+                </div>
               </div>
 
               {/* Conteúdo */}
@@ -201,6 +242,15 @@ export default function DepoimentosAdmin() {
                         style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, background: "rgba(252,165,165,0.08)", border: "1px solid rgba(252,165,165,0.2)", color: "#fca5a5", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                       >
                         <X size={12} /> Rejeitar
+                      </button>
+                    )}
+                    {dep.status === "aprovado" && (
+                      <button
+                        onClick={() => mudarStatus(dep.id, "pendente")}
+                        disabled={salvando}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                      >
+                        <Clock size={12} /> Despublicar
                       </button>
                     )}
                     <button

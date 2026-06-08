@@ -11,6 +11,8 @@ type Categoria = "Fe" | "Mentalidade" | "Lideranca" | "Emocional" | "Familia";
 type TipoDevocional = "texto" | "video";
 type DestinoDevocional = "todas-bw" | "individual";
 
+interface Mentorada { id: string; nome: string; }
+
 interface Devocional {
   id: string;
   titulo: string;
@@ -21,6 +23,7 @@ interface Devocional {
   tipo: TipoDevocional;
   linkVideo: string;
   destino: DestinoDevocional;
+  mentoradaId: string;
   mentoradaNome: string;
   publicado: boolean;
   destaque: boolean;
@@ -35,7 +38,8 @@ const catColor: Record<Categoria, string> = {
 
 const FORM_VAZIO: Omit<Devocional, "id" | "data"> = {
   titulo: "", categoria: "Fe", texto: "", versiculo: "",
-  tipo: "texto", linkVideo: "", destino: "todas-bw", mentoradaNome: "",
+  tipo: "texto", linkVideo: "", destino: "todas-bw",
+  mentoradaId: "", mentoradaNome: "",
   publicado: false, destaque: false,
 };
 
@@ -46,24 +50,25 @@ function formatarData(iso: string) {
 
 function mapDevocional(d: Record<string, unknown>): Devocional {
   return {
-    id: d.id as string,
-    titulo: d.titulo as string,
-    data: formatarData(d.criado_em as string),
-    categoria: (d.categoria ?? "Fe") as Categoria,
-    texto: (d.conteudo ?? "") as string,
-    versiculo: (d.versiculo ?? "") as string,
-    tipo: (d.tipo ?? "texto") as TipoDevocional,
-    linkVideo: (d.link_video ?? "") as string,
-    destino: (d.destino ?? "todas-bw") as DestinoDevocional,
-    mentoradaNome: (d.mentorada_nome ?? "") as string,
-    publicado: (d.publicado ?? false) as boolean,
-    destaque: (d.destaque ?? false) as boolean,
+    id:           d.id           as string,
+    titulo:       d.titulo       as string,
+    data:         formatarData(d.criado_em as string),
+    categoria:    (d.categoria   ?? "Fe")      as Categoria,
+    texto:        (d.conteudo    ?? "")        as string,
+    versiculo:    (d.versiculo   ?? "")        as string,
+    tipo:         (d.tipo        ?? "texto")   as TipoDevocional,
+    linkVideo:    (d.link_video  ?? "")        as string,
+    destino:      (d.destino     ?? "todas-bw") as DestinoDevocional,
+    mentoradaId:  (d.mentorada_id  ?? "")      as string,
+    mentoradaNome:(d.mentorada_nome ?? "")     as string,
+    publicado:    (d.publicado   ?? false)     as boolean,
+    destaque:     (d.destaque    ?? false)     as boolean,
   };
 }
 
 export default function Devocionais() {
   const [devs, setDevs] = useState<Devocional[]>([]);
-  const [mentoradas, setMentoradas] = useState<string[]>([]);
+  const [mentoradas, setMentoradas] = useState<Mentorada[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
   const [catAtiva, setCatAtiva] = useState("Todos");
@@ -78,7 +83,7 @@ export default function Devocionais() {
       fetch("/api/mentoradas").then((r) => r.json()),
     ]).then(([devData, mentData]) => {
       setDevs(Array.isArray(devData) ? devData.map(mapDevocional) : []);
-      setMentoradas(Array.isArray(mentData) ? mentData.map((m: { nome: string }) => m.nome) : []);
+      setMentoradas(Array.isArray(mentData) ? mentData.map((m: Mentorada) => ({ id: m.id, nome: m.nome })) : []);
       setCarregando(false);
     });
   }, []);
@@ -110,16 +115,17 @@ export default function Devocionais() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        titulo: form.titulo,
-        tipo: form.tipo,
-        conteudo: form.texto,
-        versiculo: form.versiculo,
-        categoria: form.categoria,
-        link_video: form.linkVideo,
-        publicado: form.publicado,
-        destaque: form.destaque,
-        destino: form.destino,
-        mentorada_nome: form.mentoradaNome || null,
+        titulo:         form.titulo,
+        tipo:           form.tipo,
+        conteudo:       form.texto,
+        versiculo:      form.versiculo,
+        categoria:      form.categoria,
+        link_video:     form.linkVideo,
+        publicado:      form.publicado,
+        destaque:       form.destaque,
+        destino:        form.destino,
+        mentorada_id:   form.destino === "individual" ? form.mentoradaId   || null : null,
+        mentorada_nome: form.destino === "individual" ? form.mentoradaNome || null : null,
       }),
     });
     const raw = await res.json();
@@ -135,17 +141,18 @@ export default function Devocionais() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: editando.id,
-        titulo: editando.titulo,
-        tipo: editando.tipo,
-        conteudo: editando.texto,
-        versiculo: editando.versiculo,
-        categoria: editando.categoria,
-        link_video: editando.linkVideo,
-        publicado: editando.publicado,
-        destaque: editando.destaque,
-        destino: editando.destino,
-        mentorada_nome: editando.mentoradaNome || null,
+        id:             editando.id,
+        titulo:         editando.titulo,
+        tipo:           editando.tipo,
+        conteudo:       editando.texto,
+        versiculo:      editando.versiculo,
+        categoria:      editando.categoria,
+        link_video:     editando.linkVideo,
+        publicado:      editando.publicado,
+        destaque:       editando.destaque,
+        destino:        editando.destino,
+        mentorada_id:   editando.destino === "individual" ? editando.mentoradaId   || null : null,
+        mentorada_nome: editando.destino === "individual" ? editando.mentoradaNome || null : null,
       }),
     });
     const raw = await res.json();
@@ -160,6 +167,12 @@ export default function Devocionais() {
     const res = await fetch(`/api/devocionais?id=${id}`, { method: "DELETE" });
     if (!res.ok) return;
     setDevs((prev) => prev.filter((d) => d.id !== id));
+    setDetalhe(null);
+  }
+
+  function abrirEdicao(d: Devocional, e?: React.MouseEvent) {
+    e?.stopPropagation();
+    setEditando({ ...d });
     setDetalhe(null);
   }
 
@@ -258,15 +271,22 @@ export default function Devocionais() {
               <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Enviar para</label>
               <div style={{ display: "flex", gap: 8, marginBottom: values.destino === "individual" ? 8 : 0 }}>
                 {(["todas-bw", "individual"] as DestinoDevocional[]).map((dest) => (
-                  <button key={dest} type="button" onClick={() => onChange({ ...values, destino: dest, mentoradaNome: "" })} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: values.destino === dest ? 600 : 400, border: `1px solid ${values.destino === dest ? "var(--gold-border)" : "var(--border)"}`, background: values.destino === dest ? "rgba(201,168,76,0.12)" : "var(--bg-input)", color: values.destino === dest ? "var(--gold)" : "var(--text-muted)" }}>
+                  <button key={dest} type="button" onClick={() => onChange({ ...values, destino: dest, mentoradaId: "", mentoradaNome: "" })} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: values.destino === dest ? 600 : 400, border: `1px solid ${values.destino === dest ? "var(--gold-border)" : "var(--border)"}`, background: values.destino === dest ? "rgba(201,168,76,0.12)" : "var(--bg-input)", color: values.destino === dest ? "var(--gold)" : "var(--text-muted)" }}>
                     {dest === "todas-bw" ? <><Users size={14} /> Todas as BW</> : <><User size={14} /> Mentorada específica</>}
                   </button>
                 ))}
               </div>
               {values.destino === "individual" && (
-                <select value={values.mentoradaNome} onChange={(e) => onChange({ ...values, mentoradaNome: e.target.value })} style={{ padding: "10px 12px", fontSize: 13, width: "100%" }}>
+                <select
+                  value={values.mentoradaId}
+                  onChange={(e) => {
+                    const m = mentoradas.find((x) => x.id === e.target.value);
+                    onChange({ ...values, mentoradaId: e.target.value, mentoradaNome: m?.nome ?? "" });
+                  }}
+                  style={{ padding: "10px 12px", fontSize: 13, width: "100%" }}
+                >
                   <option value="">Selecionar mentorada...</option>
-                  {mentoradas.map((n) => <option key={n}>{n}</option>)}
+                  {mentoradas.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
                 </select>
               )}
             </div>
@@ -284,7 +304,7 @@ export default function Devocionais() {
 
             <div className="flex gap-2 justify-end" style={{ marginTop: 4 }}>
               <button className="btn-ghost" onClick={onCancel}>Cancelar</button>
-              <button className="btn-gold" onClick={onSave} disabled={!values.titulo.trim() || (values.destino === "individual" && !values.mentoradaNome)}>
+              <button className="btn-gold" onClick={onSave} disabled={!values.titulo.trim() || (values.destino === "individual" && !values.mentoradaId)}>
                 Salvar
               </button>
             </div>
@@ -354,6 +374,10 @@ export default function Devocionais() {
                   <TipoTag tipo={d.tipo} />
                   <DestinoTag dev={d} />
                   <StatusTag dev={d} />
+                  {/* Botão editar direto no card destaque */}
+                  <button onClick={(e) => abrirEdicao(d, e)} style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 4 }}>
+                    <Pencil size={13} />
+                  </button>
                 </div>
                 <div onClick={() => setDetalhe(d)} style={{ cursor: "pointer" }}>
                   <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px" }}>{d.titulo}</h3>
@@ -394,12 +418,21 @@ export default function Devocionais() {
                   <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{d.data}</span>
                 </div>
               </div>
-              <button
-                onClick={() => togglePublicar(d.id)}
-                style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "none", flexShrink: 0, background: d.publicado ? "rgba(134,239,172,0.12)" : "rgba(201,168,76,0.1)", color: d.publicado ? "#86efac" : "var(--gold)" }}
-              >
-                {d.publicado ? <><CheckCircle2 size={11} /> Publicado</> : <><Send size={11} /> Publicar</>}
-              </button>
+              <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+                <button
+                  onClick={() => togglePublicar(d.id)}
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "none", background: d.publicado ? "rgba(134,239,172,0.12)" : "rgba(201,168,76,0.1)", color: d.publicado ? "#86efac" : "var(--gold)" }}
+                >
+                  {d.publicado ? <><CheckCircle2 size={11} /> Publicado</> : <><Send size={11} /> Publicar</>}
+                </button>
+                {/* Botão editar direto na linha */}
+                <button onClick={(e) => abrirEdicao(d, e)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "5px 6px" }}>
+                  <Pencil size={13} />
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); deletar(d.id); }} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "5px 6px", opacity: 0.5 }}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -416,7 +449,7 @@ export default function Devocionais() {
                 <DestinoTag dev={detalhe} />
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => { setEditando({ ...detalhe }); setDetalhe(null); }} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}><Pencil size={15} /></button>
+                <button onClick={() => abrirEdicao(detalhe)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}><Pencil size={15} /></button>
                 <button onClick={() => setDetalhe(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}><X size={18} /></button>
               </div>
             </div>

@@ -26,7 +26,7 @@ const PRODUTOS = [
     key: "acesso_box_livro",
     produto: "box_livro",
     nome: "Box do Livro",
-    descricao: "Livro + Devocional 30 dias",
+    descricao: "Livro + Acompanhamento",
     icon: BookOpen,
     cor: "#86efac",
   },

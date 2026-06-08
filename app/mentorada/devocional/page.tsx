@@ -14,6 +14,7 @@ type Devocional = {
   versiculo: string | null;
   link_video: string | null;
   destino: string;
+  mentorada_id: string | null;
   mentorada_nome: string | null;
   criado_em: string;
 };
@@ -27,25 +28,30 @@ export default function DevocionalMentoradaPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      let mentoradaId = "";
       let nome = "";
       if (session) {
         const { data: m } = await supabase
           .from("mentoradas")
-          .select("nome")
-          .eq("user_id", session.user.id)
-          .single();
-        if (m) nome = m.nome;
+          .select("id, nome")
+          .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
+          .maybeSingle();
+        if (m) { mentoradaId = m.id; nome = m.nome; }
         setNomeMentorada(nome);
       }
 
       const res = await fetch("/api/devocionais");
       const todos: (Devocional & { publicado: boolean })[] = await res.json();
 
-      const visiveis = todos.filter(
-        (d) =>
-          d.publicado &&
-          (d.destino === "todas-bw" || (d.destino === "individual" && d.mentorada_nome === nome))
-      );
+      const visiveis = todos.filter((d) => {
+        if (!d.publicado) return false;
+        if (d.destino === "todas-bw") return true;
+        if (d.destino !== "individual") return false;
+        // ID tem prioridade; cai para nome em devocionais antigos sem mentorada_id
+        if (d.mentorada_id && mentoradaId) return d.mentorada_id === mentoradaId;
+        return d.mentorada_nome === nome;
+      });
+
       setDevocionais(visiveis);
       setCarregando(false);
 
@@ -68,7 +74,7 @@ export default function DevocionalMentoradaPage() {
   }
 
   return (
-    <BloqueadoPorProduto produto="seja_incomum" ativo={!!perfil.produtosAtivos?.seja_incomum}>
+    <BloqueadoPorProduto produto="club_bw" ativo={!!perfil.produtosAtivos?.club_bw}>
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>

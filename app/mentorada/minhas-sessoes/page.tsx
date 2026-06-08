@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { ClipboardList, Calendar, Clock, Video, CheckSquare, Square, NotebookPen, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/hooks/usePerfil";
+import BloqueadoPorProduto from "@/components/BloqueadoPorProduto";
 
 type Sessao = {
   id: string;
@@ -32,6 +34,7 @@ function formatarData(iso: string) {
 }
 
 export default function MinhasSessoes() {
+  const perfil = usePerfil();
   const [sessoes, setSessoes]     = useState<Sessao[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [tarefasConcluidas, setTarefasConcluidas] = useState<Set<string>>(new Set());
@@ -46,7 +49,7 @@ export default function MinhasSessoes() {
         .from("mentoradas")
         .select("id")
         .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
-        .single();
+        .maybeSingle();
 
       if (!mentorada) { setCarregando(false); return; }
 
@@ -68,7 +71,7 @@ export default function MinhasSessoes() {
   const agendadas = sessoes.filter((s) => s.status === "agendada" && s.data >= hoje);
   const historico  = sessoes.filter((s) => !(s.status === "agendada" && s.data >= hoje));
 
-  if (carregando) {
+  if (perfil.carregando || carregando) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, gap: 10, color: "var(--text-muted)" }}>
         <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
@@ -79,6 +82,7 @@ export default function MinhasSessoes() {
   }
 
   return (
+    <BloqueadoPorProduto produto="club_bw" ativo={!!perfil.produtosAtivos?.club_bw}>
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
@@ -222,5 +226,6 @@ export default function MinhasSessoes() {
         </div>
       )}
     </div>
+    </BloqueadoPorProduto>
   );
 }

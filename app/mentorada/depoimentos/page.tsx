@@ -31,7 +31,6 @@ export default function Depoimentos() {
   const [tipoForm, setTipoForm] = useState<TipoDepoimento>("texto");
   const [textoForm, setTextoForm] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [enviado, setEnviado] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -69,7 +68,6 @@ export default function Depoimentos() {
 
     setTextoForm("");
     setFormAberto(false);
-    setEnviado(true);
     setEnviando(false);
   }
 
@@ -103,23 +101,6 @@ export default function Depoimentos() {
         </button>
       </div>
 
-      {/* Depoimento enviado — aguardando aprovação */}
-      {enviado && (
-        <div style={{ padding: "18px 20px", background: "rgba(201,168,76,0.08)", border: "1px solid var(--gold-border)", borderRadius: 12, marginBottom: 20 }}>
-          <div className="flex items-center gap-3" style={{ marginBottom: 8 }}>
-            <span style={{ fontSize: 22 }}>🙏</span>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--gold)", margin: 0 }}>Depoimento enviado!</p>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>Aguardando aprovação da Izabor para aparecer para todo o grupo.</p>
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "rgba(251,191,36,0.08)", borderRadius: 8, border: "1px solid rgba(251,191,36,0.2)" }}>
-            <span style={{ fontSize: 11, color: "#fbbf24" }}>⏳</span>
-            <span style={{ fontSize: 11, color: "#fbbf24", fontWeight: 600 }}>Em análise — a Izabor vai revisar e publicar em breve</span>
-          </div>
-        </div>
-      )}
-
       {/* Depoimentos aprovados */}
       {depoimentos.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 28 }}>
@@ -144,7 +125,7 @@ export default function Depoimentos() {
       )}
 
       {/* Convite para compartilhar */}
-      {depoimentos.length === 0 && !enviado && (
+      {depoimentos.length === 0 && (
         <div
           className="card glow-gold"
           style={{ padding: "32px 28px", background: "linear-gradient(135deg, #111 0%, #161208 100%)", border: "1px solid var(--gold-border)", textAlign: "center", marginBottom: 24 }}

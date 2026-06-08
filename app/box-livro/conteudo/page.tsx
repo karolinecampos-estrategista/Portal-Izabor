@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FileText, PlayCircle, Calendar, Plus, Trash2, Users, BookOpen,
 } from "lucide-react";
@@ -9,13 +9,16 @@ type TipoConteudo = "pdf" | "video" | "link";
 type TipoEncontro = "ao-vivo" | "gravado";
 
 interface Material {
-  id: number; titulo: string; tipo: TipoConteudo; capitulo: string; url: string; liberado: boolean;
+  id: string;
+  titulo: string; tipo: TipoConteudo; capitulo: string; url: string; liberado: boolean;
 }
 interface AulaGravada {
-  id: number; titulo: string; descricao: string; linkVideo: string; capitulo: string; duracao: string; liberado: boolean;
+  id: string;
+  titulo: string; descricao: string; linkVideo: string; capitulo: string; duracao: string; liberado: boolean;
 }
 interface Encontro {
-  id: number; tema: string; data: string; hora: string; linkReuniao: string; tipo: TipoEncontro; realizado: boolean;
+  id: string;
+  tema: string; data: string; hora: string; linkReuniao: string; tipo: TipoEncontro; realizado: boolean;
 }
 
 const TIPO_CONTEUDO_CONFIG: Record<TipoConteudo, { label: string; cor: string; icone: React.ReactNode }> = {
@@ -24,27 +27,42 @@ const TIPO_CONTEUDO_CONFIG: Record<TipoConteudo, { label: string; cor: string; i
   link:  { label: "Link",  cor: "#a78bfa", icone: <FileText size={13} /> },
 };
 
-const MATERIAIS_INICIAL: Material[] = [
-  { id: 1, titulo: "Guia de Leitura — Semanas 1 e 2", tipo: "pdf", capitulo: "Caps. 1 e 2", url: "", liberado: true },
-  { id: 2, titulo: "Devocional de 7 dias — Identidade", tipo: "pdf", capitulo: "Cap. 1",     url: "", liberado: true },
-  { id: 3, titulo: "Perguntas de Reflexão — Cap. 1-3",  tipo: "pdf", capitulo: "Caps. 1-3",  url: "", liberado: true },
-  { id: 4, titulo: "Guia de Leitura — Semanas 3 e 4",  tipo: "pdf", capitulo: "Caps. 4 e 5", url: "", liberado: false },
-];
+const MATERIAL_VAZIO = { titulo: "", tipo: "pdf" as TipoConteudo, capitulo: "", url: "", liberado: false };
+const AULA_VAZIA     = { titulo: "", descricao: "", linkVideo: "", capitulo: "", duracao: "", liberado: false };
+const ENCONTRO_VAZIO = { tema: "", data: "", hora: "20:00", linkReuniao: "", tipo: "ao-vivo" as TipoEncontro, realizado: false };
 
-const AULAS_INICIAL: AulaGravada[] = [
-  { id: 1, titulo: "Identidade — Quem você é antes da performance", descricao: "Aula introdutória sobre identidade em Deus.", linkVideo: "", capitulo: "Cap. 1", duracao: "38 min", liberado: true },
-  { id: 2, titulo: "Crenças que te prendem ao ordinário", descricao: "Como identificar e quebrar crenças limitantes.", linkVideo: "", capitulo: "Cap. 3", duracao: "42 min", liberado: false },
-];
-
-const ENCONTROS_INICIAL: Encontro[] = [
-  { id: 1, tema: "Caps. 1 e 2 — Identidade", data: "2026-06-10", hora: "20:00", linkReuniao: "", tipo: "ao-vivo", realizado: false },
-  { id: 2, tema: "Caps. 3 e 4 — Crenças",    data: "2026-06-24", hora: "20:00", linkReuniao: "", tipo: "ao-vivo", realizado: false },
-  { id: 3, tema: "Caps. 5 e 6 — Fé",         data: "2026-07-08", hora: "20:00", linkReuniao: "", tipo: "ao-vivo", realizado: false },
-];
-
-const MATERIAL_VAZIO: Omit<Material, "id"> = { titulo: "", tipo: "pdf", capitulo: "", url: "", liberado: false };
-const AULA_VAZIA: Omit<AulaGravada, "id"> = { titulo: "", descricao: "", linkVideo: "", capitulo: "", duracao: "", liberado: false };
-const ENCONTRO_VAZIO: Omit<Encontro, "id"> = { tema: "", data: "", hora: "20:00", linkReuniao: "", tipo: "ao-vivo", realizado: false };
+function mapMaterial(d: Record<string, unknown>): Material {
+  return {
+    id: d.id as string,
+    titulo: (d.titulo ?? "") as string,
+    tipo: (d.tipo ?? "pdf") as TipoConteudo,
+    capitulo: (d.capitulo ?? "") as string,
+    url: (d.url ?? "") as string,
+    liberado: (d.liberado ?? false) as boolean,
+  };
+}
+function mapAula(d: Record<string, unknown>): AulaGravada {
+  return {
+    id: d.id as string,
+    titulo: (d.titulo ?? "") as string,
+    descricao: (d.descricao ?? "") as string,
+    linkVideo: (d.link_video ?? "") as string,
+    capitulo: (d.capitulo ?? "") as string,
+    duracao: (d.duracao ?? "") as string,
+    liberado: (d.liberado ?? false) as boolean,
+  };
+}
+function mapEncontro(d: Record<string, unknown>): Encontro {
+  return {
+    id: d.id as string,
+    tema: (d.tema ?? "") as string,
+    data: (d.data ?? "") as string,
+    hora: (d.hora ?? "20:00") as string,
+    linkReuniao: (d.link_reuniao ?? "") as string,
+    tipo: (d.tipo ?? "ao-vivo") as TipoEncontro,
+    realizado: (d.realizado ?? false) as boolean,
+  };
+}
 
 function formatDate(iso: string) {
   if (!iso) return "";
@@ -58,48 +76,115 @@ export default function BoxLivroConteudo() {
   const [aulas, setAulas] = useState<AulaGravada[]>([]);
   const [encontros, setEncontros] = useState<Encontro[]>([]);
 
-  const [formMaterial, setFormMaterial] = useState<Omit<Material, "id">>(MATERIAL_VAZIO);
-  const [formAula, setFormAula] = useState<Omit<AulaGravada, "id">>(AULA_VAZIA);
-  const [formEncontro, setFormEncontro] = useState<Omit<Encontro, "id">>(ENCONTRO_VAZIO);
+  const [formMaterial, setFormMaterial] = useState(MATERIAL_VAZIO);
+  const [formAula, setFormAula] = useState(AULA_VAZIA);
+  const [formEncontro, setFormEncontro] = useState(ENCONTRO_VAZIO);
   const [showFormMaterial, setShowFormMaterial] = useState(false);
   const [showFormAula, setShowFormAula] = useState(false);
   const [showFormEncontro, setShowFormEncontro] = useState(false);
 
-  // Estados de edição
   const [editMaterial, setEditMaterial] = useState<Material | null>(null);
   const [editAula, setEditAula] = useState<AulaGravada | null>(null);
   const [editEncontro, setEditEncontro] = useState<Encontro | null>(null);
 
-  function addMaterial() {
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/box-livro-conteudo?secao=material").then(r => r.json()),
+      fetch("/api/box-livro-conteudo?secao=aula").then(r => r.json()),
+      fetch("/api/box-livro-conteudo?secao=encontro").then(r => r.json()),
+    ]).then(([mats, auls, encs]) => {
+      setMateriais(Array.isArray(mats) ? mats.map(mapMaterial) : []);
+      setAulas(Array.isArray(auls) ? auls.map(mapAula) : []);
+      setEncontros(Array.isArray(encs) ? encs.map(mapEncontro) : []);
+    });
+  }, []);
+
+  async function addMaterial() {
     if (!formMaterial.titulo.trim()) return;
-    setMateriais((p) => [...p, { ...formMaterial, id: Date.now() }]);
-    setFormMaterial(MATERIAL_VAZIO); setShowFormMaterial(false);
-  }
-  function addAula() {
-    if (!formAula.titulo.trim()) return;
-    setAulas((p) => [...p, { ...formAula, id: Date.now() }]);
-    setFormAula(AULA_VAZIA); setShowFormAula(false);
-  }
-  function addEncontro() {
-    if (!formEncontro.tema.trim()) return;
-    setEncontros((p) => [...p, { ...formEncontro, id: Date.now() }]);
-    setFormEncontro(ENCONTRO_VAZIO); setShowFormEncontro(false);
+    const res = await fetch("/api/box-livro-conteudo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secao: "material", titulo: formMaterial.titulo, tipo: formMaterial.tipo, capitulo: formMaterial.capitulo, url: formMaterial.url, liberado: formMaterial.liberado }),
+    });
+    const novo = await res.json();
+    if (novo?.id) setMateriais(p => [...p, mapMaterial(novo)]);
+    setFormMaterial(MATERIAL_VAZIO);
+    setShowFormMaterial(false);
   }
 
-  function salvarEditMaterial() {
+  async function addAula() {
+    if (!formAula.titulo.trim()) return;
+    const res = await fetch("/api/box-livro-conteudo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secao: "aula", titulo: formAula.titulo, descricao: formAula.descricao, link_video: formAula.linkVideo, capitulo: formAula.capitulo, duracao: formAula.duracao, liberado: formAula.liberado }),
+    });
+    const nova = await res.json();
+    if (nova?.id) setAulas(p => [...p, mapAula(nova)]);
+    setFormAula(AULA_VAZIA);
+    setShowFormAula(false);
+  }
+
+  async function addEncontro() {
+    if (!formEncontro.tema.trim()) return;
+    const res = await fetch("/api/box-livro-conteudo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secao: "encontro", tema: formEncontro.tema, data: formEncontro.data || null, hora: formEncontro.hora, link_reuniao: formEncontro.linkReuniao, tipo: formEncontro.tipo, realizado: formEncontro.realizado }),
+    });
+    const novo = await res.json();
+    if (novo?.id) setEncontros(p => [...p, mapEncontro(novo)]);
+    setFormEncontro(ENCONTRO_VAZIO);
+    setShowFormEncontro(false);
+  }
+
+  async function salvarEditMaterial() {
     if (!editMaterial) return;
-    setMateriais((p) => p.map((x) => x.id === editMaterial.id ? editMaterial : x));
+    const res = await fetch("/api/box-livro-conteudo", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editMaterial.id, titulo: editMaterial.titulo, tipo: editMaterial.tipo, capitulo: editMaterial.capitulo, url: editMaterial.url, liberado: editMaterial.liberado }),
+    });
+    const at = await res.json();
+    if (at?.id) setMateriais(p => p.map(x => x.id === at.id ? mapMaterial(at) : x));
     setEditMaterial(null);
   }
-  function salvarEditAula() {
+
+  async function salvarEditAula() {
     if (!editAula) return;
-    setAulas((p) => p.map((x) => x.id === editAula.id ? editAula : x));
+    const res = await fetch("/api/box-livro-conteudo", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editAula.id, titulo: editAula.titulo, descricao: editAula.descricao, link_video: editAula.linkVideo, capitulo: editAula.capitulo, duracao: editAula.duracao, liberado: editAula.liberado }),
+    });
+    const at = await res.json();
+    if (at?.id) setAulas(p => p.map(x => x.id === at.id ? mapAula(at) : x));
     setEditAula(null);
   }
-  function salvarEditEncontro() {
+
+  async function salvarEditEncontro() {
     if (!editEncontro) return;
-    setEncontros((p) => p.map((x) => x.id === editEncontro.id ? editEncontro : x));
+    const res = await fetch("/api/box-livro-conteudo", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editEncontro.id, tema: editEncontro.tema, data: editEncontro.data || null, hora: editEncontro.hora, link_reuniao: editEncontro.linkReuniao, tipo: editEncontro.tipo, realizado: editEncontro.realizado }),
+    });
+    const at = await res.json();
+    if (at?.id) setEncontros(p => p.map(x => x.id === at.id ? mapEncontro(at) : x));
     setEditEncontro(null);
+  }
+
+  async function excluirMaterial(id: string) {
+    await fetch(`/api/box-livro-conteudo?id=${id}`, { method: "DELETE" });
+    setMateriais(p => p.filter(x => x.id !== id));
+  }
+  async function excluirAula(id: string) {
+    await fetch(`/api/box-livro-conteudo?id=${id}`, { method: "DELETE" });
+    setAulas(p => p.filter(x => x.id !== id));
+  }
+  async function excluirEncontro(id: string) {
+    await fetch(`/api/box-livro-conteudo?id=${id}`, { method: "DELETE" });
+    setEncontros(p => p.filter(x => x.id !== id));
   }
 
   return (
@@ -170,7 +255,6 @@ export default function BoxLivroConteudo() {
               const editando = editMaterial?.id === m.id;
               return (
                 <div key={m.id} style={{ borderRadius: 8, background: "var(--bg-input)", border: `1px solid ${editando ? "var(--gold-border)" : "var(--border)"}`, overflow: "hidden" }}>
-                  {/* Linha do item */}
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", flexWrap: "wrap" }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: `${cfg.cor}18`, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.cor, flexShrink: 0 }}>{cfg.icone}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -183,11 +267,10 @@ export default function BoxLivroConteudo() {
                     <button onClick={() => editando ? setEditMaterial(null) : setEditMaterial({ ...m })} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${editando ? "var(--gold-border)" : "var(--border)"}`, background: editando ? "var(--gold-light)" : "transparent", color: editando ? "var(--gold)" : "var(--text-muted)", cursor: "pointer" }}>
                       {editando ? "Fechar" : "Editar"}
                     </button>
-                    <button onClick={() => setMateriais((p) => p.filter((x) => x.id !== m.id))} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}>
+                    <button onClick={() => excluirMaterial(m.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
-                  {/* Painel de edição */}
                   {editando && editMaterial && (
                     <div style={{ borderTop: "1px solid var(--gold-border)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, background: "var(--bg-card)" }}>
                       <div>
@@ -295,7 +378,7 @@ export default function BoxLivroConteudo() {
                     <button onClick={() => editando ? setEditAula(null) : setEditAula({ ...a })} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${editando ? "rgba(147,197,253,0.4)" : "var(--border)"}`, background: editando ? "rgba(147,197,253,0.1)" : "transparent", color: editando ? "#93c5fd" : "var(--text-muted)", cursor: "pointer" }}>
                       {editando ? "Fechar" : "Editar"}
                     </button>
-                    <button onClick={() => setAulas((p) => p.filter((x) => x.id !== a.id))} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}>
+                    <button onClick={() => excluirAula(a.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -408,7 +491,7 @@ export default function BoxLivroConteudo() {
                     <button onClick={() => editando ? setEditEncontro(null) : setEditEncontro({ ...e })} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${editando ? "rgba(167,139,250,0.4)" : "var(--border)"}`, background: editando ? "rgba(167,139,250,0.1)" : "transparent", color: editando ? "#a78bfa" : "var(--text-muted)", cursor: "pointer" }}>
                       {editando ? "Fechar" : "Editar"}
                     </button>
-                    <button onClick={() => setEncontros((p) => p.filter((x) => x.id !== e.id))} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}>
+                    <button onClick={() => excluirEncontro(e.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -437,6 +520,10 @@ export default function BoxLivroConteudo() {
                       <div>
                         <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Link da reunião</label>
                         <input className="input" value={editEncontro.linkReuniao} onChange={(e2) => setEditEncontro({ ...editEncontro, linkReuniao: e2.target.value })} placeholder="https://zoom.us/..." />
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input type="checkbox" id={`enc-real-${e.id}`} checked={editEncontro.realizado} onChange={(e2) => setEditEncontro({ ...editEncontro, realizado: e2.target.checked })} />
+                        <label htmlFor={`enc-real-${e.id}`} style={{ fontSize: 12, color: "var(--text-soft)", cursor: "pointer" }}>Já realizado</label>
                       </div>
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                         <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setEditEncontro(null)}>Cancelar</button>

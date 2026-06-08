@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import { FileText, CheckCircle, Clock, Star, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/hooks/usePerfil";
+import BloqueadoPorProduto from "@/components/BloqueadoPorProduto";
 
 type Marco = { id: string; texto: string; feito: boolean; semana: string; ordem: number };
-type Plano = { id: string; mentorada_nome: string; cor: string; programa: string; marcos: Marco[] };
+type Plano = { id: string; mentorada_id: string | null; mentorada_nome: string; cor: string; marcos: Marco[] };
 
 export default function PlanoMentoradaPage() {
+  const perfil = usePerfil();
   const [plano, setPlano] = useState<Plano | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -18,22 +21,23 @@ export default function PlanoMentoradaPage() {
       const { data: mentorada } = await supabase
         .from("mentoradas")
         .select("id, nome")
-        .eq("user_id", session.user.id)
-        .single();
+        .or(`user_id.eq.${session.user.id},id.eq.${session.user.id}`)
+        .maybeSingle();
 
       if (!mentorada) { setCarregando(false); return; }
 
       const res = await fetch("/api/planos");
       const planos: Plano[] = await res.json();
-      const meuPlano = planos.find(
-        (p) => p.mentorada_nome === mentorada.nome
-      ) ?? null;
+      const meuPlano = planos.find((p) => {
+        if (p.mentorada_id && mentorada.id) return p.mentorada_id === mentorada.id;
+        return p.mentorada_nome === mentorada.nome;
+      }) ?? null;
       setPlano(meuPlano);
       setCarregando(false);
     });
   }, []);
 
-  if (carregando) {
+  if (perfil.carregando || carregando) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, gap: 10, color: "var(--text-muted)" }}>
         <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
@@ -44,6 +48,7 @@ export default function PlanoMentoradaPage() {
 
   if (!plano) {
     return (
+      <BloqueadoPorProduto produto="club_bw" ativo={!!perfil.produtosAtivos?.club_bw}>
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -60,6 +65,7 @@ export default function PlanoMentoradaPage() {
           </p>
         </div>
       </div>
+      </BloqueadoPorProduto>
     );
   }
 
@@ -68,6 +74,7 @@ export default function PlanoMentoradaPage() {
   const prog = marcosOrdenados.length > 0 ? Math.round((feitos / marcosOrdenados.length) * 100) : 0;
 
   return (
+    <BloqueadoPorProduto produto="club_bw" ativo={!!perfil.produtosAtivos?.club_bw}>
     <div style={{ maxWidth: 600, margin: "0 auto" }}>
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -91,7 +98,7 @@ export default function PlanoMentoradaPage() {
           <div style={{ height: "100%", width: `${prog}%`, background: "var(--gold)", borderRadius: 999, transition: "width 0.4s" }} />
         </div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-          {feitos} de {marcosOrdenados.length} marcos conquistados — {plano.programa}
+          {feitos} de {marcosOrdenados.length} marcos conquistados — Club BW
         </p>
       </div>
 
@@ -140,5 +147,6 @@ export default function PlanoMentoradaPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
+    </BloqueadoPorProduto>
   );
 }
