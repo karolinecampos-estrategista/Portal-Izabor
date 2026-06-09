@@ -6,6 +6,9 @@ export async function GET(req: NextRequest) {
   const mentoradaId = searchParams.get("mentorada_id");
   const mentoradaNome = searchParams.get("mentorada_nome");
 
+  // Requer pelo menos um filtro — sem filtro, nenhum dado é retornado
+  if (!mentoradaId && !mentoradaNome) return NextResponse.json([]);
+
   let query = supabaseAdmin
     .from("planos")
     .select(`*, marcos ( id, texto, feito, semana, ordem )`)

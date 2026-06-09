@@ -90,19 +90,15 @@ export default function MinhasTarefas() {
         }
       }
 
-      const res = await fetch("/api/tarefas");
-      const todas: Tarefa[] = await res.json();
-
-      // Mostra tarefas globais (sem destinatário) + as específicas da aluna
-      // Aceita vínculo por ID (novo) ou por nome (legado)
-      const minhas = Array.isArray(todas)
-        ? todas
-            .filter((t) => {
-              if (!t.mentorada_id && !t.mentorada_nome) return true; // global
-              if (t.mentorada_id && mentoradaId) return t.mentorada_id === mentoradaId;
-              return t.mentorada_nome === nome; // fallback legado
-            })
-            .map((t) => ({ ...t, anotacao: "" }))
+      const params = mentoradaId
+        ? `?mentorada_id=${encodeURIComponent(mentoradaId)}`
+        : nome
+        ? `?mentorada_nome=${encodeURIComponent(nome)}`
+        : "";
+      const res = await fetch(`/api/tarefas${params}`);
+      const json = await res.json();
+      const minhas: Tarefa[] = Array.isArray(json)
+        ? json.map((t: Tarefa) => ({ ...t, anotacao: "" }))
         : [];
       setTarefas(minhas);
       setCarregando(false);

@@ -26,13 +26,9 @@ export default function PlanoMentoradaPage() {
 
       if (!mentorada) { setCarregando(false); return; }
 
-      const res = await fetch("/api/planos");
+      const res = await fetch(`/api/planos?mentorada_id=${encodeURIComponent(mentorada.id)}`);
       const planos: Plano[] = await res.json();
-      const meuPlano = planos.find((p) => {
-        if (p.mentorada_id && mentorada.id) return p.mentorada_id === mentorada.id;
-        return p.mentorada_nome === mentorada.nome;
-      }) ?? null;
-      setPlano(meuPlano);
+      setPlano(Array.isArray(planos) ? (planos[0] ?? null) : null);
       setCarregando(false);
     });
   }, []);

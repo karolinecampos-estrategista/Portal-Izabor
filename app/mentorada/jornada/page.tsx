@@ -59,18 +59,12 @@ export default function Jornada() {
         if (m) { mentoradaId = m.id; nomeMentorada = m.nome; }
       }
 
-      const res = await fetch("/api/desafios");
-      const todos: Desafio[] = await res.json();
+      // Sem ID da mentorada não temos como filtrar — não carrega nada
+      if (!mentoradaId) { setCarregando(false); return; }
 
-      const meus = Array.isArray(todos)
-        ? todos.filter((d) => {
-            if (d.destino === "todas-bw") return true;
-            if (d.destino !== "individual") return false;
-            // ID tem prioridade; cai para nome em desafios antigos sem mentorada_id
-            if (d.mentorada_id && mentoradaId) return d.mentorada_id === mentoradaId;
-            return d.mentorada_nome === nomeMentorada;
-          })
-        : [];
+      const res = await fetch(`/api/desafios?mentorada_id=${encodeURIComponent(mentoradaId)}`);
+      const todos: Desafio[] = await res.json();
+      const meus = Array.isArray(todos) ? todos : [];
 
       setDesafios(meus);
       setCarregando(false);
